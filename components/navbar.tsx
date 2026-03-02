@@ -69,6 +69,7 @@ export default function Navbar() {
                                             <p>{session.user.email}</p>
                                         </div>
                                     </DropdownMenuLabel>
+                                    <SignOutButton />
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </>) :
