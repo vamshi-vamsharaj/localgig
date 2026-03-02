@@ -54,25 +54,34 @@ export default function Navbar() {
                         {session?.user ? (<>
                             <DropdownMenu>
                                 <DropdownMenuTrigger>
-                                    <Button variant="ghost">
-                                        <Avatar>
+                                    <Button
+                                        variant="ghost"
+                                        className="relative h-8 w-8 rounded-full"
+                                    >
+                                        <Avatar className="h-8 w-8">
                                             <AvatarFallback className="bg-primary text-white">
                                                 {session.user.name[0].toUpperCase()}
                                             </AvatarFallback>
                                         </Avatar>
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent>
-                                    <DropdownMenuLabel>
-                                        <div>
-                                            <p>{session.user.name}</p>
-                                            <p>{session.user.email}</p>
+
+                                <DropdownMenuContent className="w-56" align="end">
+                                    <DropdownMenuLabel className="font-normal">
+                                        <div className="flex flex-col space-y-1">
+                                            <p className="text-sm font-medium leading-none">
+                                                {session.user.name}
+                                            </p>
+                                            <p className="text-xs leading-none text-muted-foreground">
+                                                {session.user.email}
+                                            </p>
                                         </div>
                                     </DropdownMenuLabel>
                                     <SignOutButton />
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                        </>) :
+                        </>
+                        ) :
                             (<>
                                 <Link href="/sign-in">
                                     <Button
@@ -86,7 +95,9 @@ export default function Navbar() {
                                     <Button className="bg-primary hover:bg-primary/90">
                                         Sign Up
                                     </Button>
-                                </Link></>)}
+                                </Link></>
+                            )
+                        }
                     </>
 
                 </div>
