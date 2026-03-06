@@ -5,6 +5,7 @@ export interface ITask extends Document {
     description: string;
     budget: number;
     category?: string;
+    estimatedHours?: number; // NEW
     location: {
         type: "Point";
         coordinates: [number, number];
@@ -25,6 +26,10 @@ const TaskSchema = new Schema<ITask>(
         description: { type: String, required: true },
         budget: { type: Number, required: true },
         category: { type: String },
+
+        estimatedHours: {
+            type: Number,
+        },
 
         address: { type: String, required: true },
 

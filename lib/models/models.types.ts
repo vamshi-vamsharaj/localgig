@@ -4,6 +4,8 @@ export interface Task {
     description: string
     budget: number
     category?: string
+    estimatedHours?: number   
+
     address: string
 
     location: {
