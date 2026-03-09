@@ -1,10 +1,25 @@
 import JobsFilters from "@/components/tasks/TasksFilters";
 import JobCard from "@/components/tasks/TaskCard";
-import { Task } from "@/lib/models/models.types";
 import { getTasks } from "@/lib/actions/tasks";
+import { Task } from "@/lib/models/models.types";
 
-export default async function ExploreJobsPage() {
-    const tasks = await getTasks({});
+interface PageProps {
+    searchParams: Promise<{
+        category?: string;
+        location?: string;
+        budget?: string;
+    }>;
+}
+
+export default async function ExploreJobsPage({ searchParams }: PageProps) {
+
+    const params = await searchParams;
+
+    const tasks: Task[] = await getTasks({
+        category: params.category,
+        location: params.location,
+        budget: params.budget ? Number(params.budget) : undefined,
+    });
 
     return (
         <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8">
@@ -15,19 +30,16 @@ export default async function ExploreJobsPage() {
                     Explore Jobs
                 </h1>
 
-                {tasks.length === 0 ? (
-                    <p className="text-gray-500">
-                        No jobs match your filters.
-                    </p>
-                ) : (
-                    <div className="grid md:grid-cols-2 gap-6">
-                        {tasks.map((task) => (
-                            <JobCard key={task._id} task={task} />
-                        ))}
-                    </div>
-                )}
+
+                <div className="grid md:grid-cols-2 gap-6">
+                    {tasks.map((task) => (
+                        <JobCard key={task._id} task={task} />
+                    ))}
+                </div>
+
 
             </div>
+
         </div>
     );
 }
