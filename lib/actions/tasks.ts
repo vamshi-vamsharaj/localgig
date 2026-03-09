@@ -1,6 +1,6 @@
 import connectDB from "@/lib/db";
 import { Task } from "@/lib/models";
-
+import { Task as TaskType } from "@/lib/models/models.types";
 interface CreateTaskInput {
   title: string;
   description: string;
@@ -25,28 +25,40 @@ export async function createTask(data: CreateTaskInput) {
   return task;
 }
 
-export async function getTasks(filters: {
+interface GetTasksParams {
   category?: string;
+  location?: string;
   budget?: number;
-}) {
+}
+
+export async function getTasks({
+  category,
+  location,
+  budget,
+}: GetTasksParams): Promise<TaskType[]> {
+
   await connectDB();
 
-  const query: Record<string, any> = {
+  const query: any = {
     status: "open",
   };
 
-  if (filters.category) {
-    query.category = filters.category;
+  if (category && category !== "all") {
+    query.category = category;
   }
 
-  if (filters.budget) {
-    query.budget = { $gte: filters.budget };
+  if (location && location !== "all") {
+    query.address = { $regex: location, $options: "i" };
   }
-const tasks = await Task.find(query).sort({ createdAt: -1 }).lean();
 
-return tasks.map((task) => ({
-  ...task,
-  _id: task._id.toString(),
-  clientId: task.clientId?.toString(),
-}));
+  if (budget !== undefined && budget > 0) {
+    query.budget = { $gte: budget };
+  }
+
+
+  const tasks = await Task.find(query)
+    .sort({ createdAt: -1 })
+    .lean();
+
+  return JSON.parse(JSON.stringify(tasks));
 }

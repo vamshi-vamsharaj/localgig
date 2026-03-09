@@ -49,3 +49,23 @@ export async function POST(req: NextRequest) {
         );
     }
 }
+export async function GET(req: NextRequest) {
+    try {
+        const { searchParams } = new URL(req.url);
+        const category = searchParams.get("category") || undefined;
+        const budget = searchParams.get("budget")
+            ? Number(searchParams.get("budget"))
+            : undefined;
+        const tasks = await getTasks({
+            category,
+            budget,
+        });
+        return NextResponse.json(tasks);
+    } catch (error) {
+        console.error(error);
+        return NextResponse.json(
+            { error: "Failed to fetch tasks" },
+            { status: 500 }
+        );
+    }
+}
