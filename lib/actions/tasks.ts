@@ -7,12 +7,9 @@ interface CreateTaskInput {
   budget: number;
   category?: string;
   estimatedHours?: number;
-  location: {
-    type: "Point";
-    coordinates: [number, number];
-  };
+  location: { type: "Point"; coordinates: [number, number] };
   address: string;
-  deadline?: Date;
+  deadline?: Date | string;
   clientId: string;
 }
 
@@ -45,10 +42,11 @@ export async function getTasks(filters: {
   if (filters.budget) {
     query.budget = { $gte: filters.budget };
   }
+const tasks = await Task.find(query).sort({ createdAt: -1 }).lean();
 
-  const tasks = await Task.find(query).sort({
-    createdAt: -1,
-  });
-
-  return tasks;
+return tasks.map((task) => ({
+  ...task,
+  _id: task._id.toString(),
+  clientId: task.clientId?.toString(),
+}));
 }
