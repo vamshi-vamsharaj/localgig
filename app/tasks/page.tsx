@@ -23,23 +23,23 @@ export default async function ExploreJobsPage({ searchParams }: PageProps) {
 
     return (
         <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8">
-
+            <JobsFilters />
             <div className="flex-1">
-
                 <h1 className="text-2xl font-bold mb-6">
                     Explore Jobs
                 </h1>
-
-
-                <div className="grid md:grid-cols-2 gap-6">
-                    {tasks.map((task) => (
-                        <JobCard key={task._id} task={task} />
-                    ))}
-                </div>
-
-
+                {tasks.length === 0 ? (
+                    <p className="text-gray-500">
+                        No jobs match your filters.
+                    </p>
+                ) : (
+                    <div className="grid md:grid-cols-2 gap-6">
+                        {tasks.map((task) => (
+                            <JobCard key={task._id} task={task} />
+                        ))}
+                    </div>
+                )}
             </div>
-
         </div>
     );
 }
