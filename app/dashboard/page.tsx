@@ -1,24 +1,24 @@
-import { SidebarProvider, Sidebar } from "@/components/ui/sidebar";import { getSession } from "@/lib/auth/auth";
-import connectDB from "@/lib/db";
 import { redirect } from "next/navigation";
-import { Suspense } from "react";
+import { getSession } from "@/lib/auth/auth";
+import {
+    getDashboardStats,
+} from "@/lib/actions/dashboard-stats";
 
-export  function DashboardPage() {
-  return (
-    <div>
-      <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-      <p className="text-gray-500">Tuesday, April 23rd, 2024</p>
-    </div>
-  )
-}
+import DashboardStats from "@/components/dashboard/dashboard-stats";
 
-export default async function Dashboard() {
+export default async function DashboardPage() {
+    const session = await getSession();
+    if (!session?.user) redirect("/login");
+
+    const userId = (session.user as { id: string }).id;
+
+    const [stats] = await Promise.all([
+        getDashboardStats(userId),
+    ]);
+
     return (
-      <div className="flex">
-
-        <main className="flex-1 p-6">
-          <h1>Dashboard</h1>
-        </main>
-      </div>
+        <div className="space-y-6 max-w-[1200px] mx-auto">
+            <DashboardStats stats={stats} />
+        </div>
     );
 }
