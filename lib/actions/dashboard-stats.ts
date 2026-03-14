@@ -63,3 +63,20 @@ export async function getRecentPostedTasks(userId: string) {
     status: task.status,
   }))
 }
+export async function getRecentAppliedTasks(userId: string) {
+  await connectDB()
+
+  const applications = await Application.find({ workerId: userId })
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .populate("taskId")
+    .lean()
+
+  return applications.map((app: any) => ({
+    _id: app.taskId._id.toString(),
+    title: app.taskId.title,
+    category: app.taskId.category,
+    budget: app.taskId.budget,
+    status: app.status,
+  }))
+}
