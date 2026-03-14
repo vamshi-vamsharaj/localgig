@@ -46,3 +46,20 @@ export async function getDashboardStats(userId: string) {
         workerCompletedTasks
     }
 }
+
+export async function getRecentPostedTasks(userId: string) {
+  await connectDB()
+
+  const tasks = await Task.find({ clientId: userId })
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .lean()
+
+  return tasks.map((task: any) => ({
+    _id: task._id.toString(),
+    title: task.title,
+    category: task.category,
+    budget: task.budget,
+    status: task.status,
+  }))
+}
