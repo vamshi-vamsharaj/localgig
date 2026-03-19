@@ -8,7 +8,7 @@ import {
   FileText,
   MessageCircle,
   Settings,
-  Home,Search,
+  Home, Search,
   PlusCircle,
   Send,
   Bookmark,
@@ -70,12 +70,11 @@ export default function AppSidebar() {
   const pathname = usePathname()
 
   return (
-    <aside className="w-64 bg-white border-r flex flex-col justify-between">
-
+   <aside className="fixed left-0 top-0 h-screen w-64 bg-white border-r flex flex-col justify-between z-50">
       {/* Logo */}
       <div>
         <div className="flex items-center gap-2 p-6 text-xl font-bold">
-          <Home className="text-blue-600"/>
+          <Home className="text-blue-600" />
           LocalGig
         </div>
 
@@ -90,11 +89,10 @@ export default function AppSidebar() {
                 key={item.title}
                 href={item.url}
                 className={`flex items-center gap-3 px-4 py-2 rounded-lg transition
-                ${
-                  active
+                ${active
                     ? "bg-blue-600 text-white"
                     : "text-gray-600 hover:bg-gray-100"
-                }`}
+                  }`}
               >
                 <Icon size={18} />
                 {item.title}

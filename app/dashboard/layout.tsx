@@ -11,7 +11,8 @@ export default function DashboardLayout({
             <div className="flex min-h-screen w-full">
                 <AppSidebar />
 
-                <main className="flex-1 p-6">
+           <main className="flex-1 ml-64 p-6 overflow-y-auto h-screen will-change-scroll">
+                    
                     {children}
                 </main>
             </div>
