@@ -39,3 +39,15 @@ export async function getMyTasks(userId: string): Promise<UserTask[]> {
     }));
 }
 
+export async function getMyTaskStats(userId: string) {
+    await connectDB();
+
+    const [total, open, inProgress, completed] = await Promise.all([
+        Task.countDocuments({ clientId: userId }),
+        Task.countDocuments({ clientId: userId, status: "open" }),
+        Task.countDocuments({ clientId: userId, status: "in_progress" }),
+        Task.countDocuments({ clientId: userId, status: "completed" }),
+    ]);
+
+    return { total, open, inProgress, completed };
+}
