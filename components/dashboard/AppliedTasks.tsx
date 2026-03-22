@@ -299,3 +299,197 @@ function ApplicationRow({ item }: { item: AppliedTask }) {
         </div>
     );
 }
+
+export default function AppliedTasks({
+    applications,
+    stats,
+}: {
+    applications: AppliedTask[];
+    stats: Stats;
+}) {
+    const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState<AppStatus | "all">("all");
+    const [sort, setSort] = useState<SortKey>("newest");
+    const [view, setView] = useState<ViewMode>("grid");
+
+    const filtered = useMemo(() => {
+        let result = [...applications];
+        if (search.trim()) {
+            const q = search.toLowerCase();
+            result = result.filter(
+                (a) =>
+                    a.task?.title.toLowerCase().includes(q) ||
+                    a.task?.category.toLowerCase().includes(q) ||
+                    a.task?.address.toLowerCase().includes(q)
+            );
+        }
+        if (statusFilter !== "all") {
+            result = result.filter((a) => a.applicationStatus === statusFilter);
+        }
+        result.sort((a, b) => {
+            if (sort === "newest") return new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime();
+            if (sort === "oldest") return new Date(a.appliedAt).getTime() - new Date(b.appliedAt).getTime();
+            if (sort === "budget_high") return (b.task?.budget ?? 0) - (a.task?.budget ?? 0);
+            if (sort === "budget_low") return (a.task?.budget ?? 0) - (b.task?.budget ?? 0);
+            return 0;
+        });
+        return result;
+    }, [applications, search, statusFilter, sort]);
+
+    const acceptanceRate = stats.total > 0 ? Math.round((stats.accepted / stats.total) * 100) : 0;
+
+    return (
+        <div className="space-y-6 ">
+
+            {/* ── Header ──────────────────────────────────────────────────── */}
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                    <h1 className="text-2xl font-bold text-zinc-900 tracking-tight">My Applications</h1>
+                    <p className="text-sm text-zinc-400 mt-0.5">Tasks you've applied to on LocalGig</p>
+                </div>
+                <Link
+                    href="/tasks"
+                    className="inline-flex items-center gap-2 h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors shadow-sm shadow-blue-200"
+                >
+                    <Briefcase className="h-4 w-4" />
+                    Browse Tasks
+                </Link>
+            </div>
+
+            {/* ── Stat Cards ──────────────────────────────────────────────── */}
+            <div className="flex gap-3 flex-wrap">
+                <StatCard label="Total Applied"  value={stats.total}    icon={Briefcase}    active={statusFilter === "all"}      onClick={() => setStatusFilter("all")} />
+                <StatCard label="Pending"        value={stats.pending}  icon={Hourglass}    active={statusFilter === "pending"}  onClick={() => setStatusFilter("pending")} />
+                <StatCard label="Accepted"       value={stats.accepted} icon={CheckCircle2} active={statusFilter === "accepted"} onClick={() => setStatusFilter("accepted")} />
+                <StatCard label="Rejected"       value={stats.rejected} icon={XCircle}      active={statusFilter === "rejected"} onClick={() => setStatusFilter("rejected")} />
+
+                {stats.total > 0 && (
+                    <div className="flex-1 min-w-[130px] bg-white rounded-2xl border border-zinc-100 shadow-sm px-5 py-4">
+                        <div className="h-8 w-8 rounded-xl bg-blue-50 flex items-center justify-center mb-3">
+                            <TrendingUp className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <p className="text-3xl font-bold tracking-tight text-zinc-900">{acceptanceRate}%</p>
+                        <p className="text-xs font-medium mt-0.5 text-zinc-400">Acceptance Rate</p>
+                    </div>
+                )}
+            </div>
+
+            {/* ── Toolbar ─────────────────────────────────────────────────── */}
+            <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex-1 min-w-[200px] relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-300" />
+                    <input
+                        type="text"
+                        placeholder="Search by task, category, location..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full h-9 pl-9 pr-4 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-800 placeholder-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition"
+                    />
+                </div>
+
+                {/* Status tabs — active tab is blue-600 */}
+                <div className="hidden sm:flex items-center bg-zinc-100 rounded-xl p-1 gap-0.5">
+                    {FILTER_TABS.map((tab) => (
+                        <button
+                            key={tab.value}
+                            onClick={() => setStatusFilter(tab.value)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                                statusFilter === tab.value
+                                    ? "bg-blue-600 text-white shadow-sm"
+                                    : "text-zinc-500 hover:text-zinc-700 hover:bg-white/60"
+                            }`}
+                        >
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="relative">
+                    <select
+                        value={sort}
+                        onChange={(e) => setSort(e.target.value as SortKey)}
+                        className="h-9 pl-3 pr-8 rounded-xl border border-zinc-200 bg-white text-xs text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 appearance-none cursor-pointer transition"
+                    >
+                        <option value="newest">Newest first</option>
+                        <option value="oldest">Oldest first</option>
+                        <option value="budget_high">Budget: High → Low</option>
+                        <option value="budget_low">Budget: Low → High</option>
+                    </select>
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 pointer-events-none" />
+                </div>
+
+                {/* View toggle — active is blue-600 */}
+                <div className="flex items-center bg-zinc-100 rounded-xl p-1 gap-0.5">
+                    {([["grid", LayoutGrid], ["list", List]] as const).map(([mode, Icon]) => (
+                        <button
+                            key={mode}
+                            onClick={() => setView(mode)}
+                            className={`h-7 w-7 flex items-center justify-center rounded-lg transition-all ${
+                                view === mode
+                                    ? "bg-blue-600 text-white shadow-sm"
+                                    : "text-zinc-400 hover:text-zinc-600 hover:bg-white/60"
+                            }`}
+                        >
+                            <Icon className="h-3.5 w-3.5" />
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* ── Results count ────────────────────────────────────────────── */}
+            <p className="text-xs text-zinc-400">
+                Showing <span className="font-semibold text-blue-600">{filtered.length}</span> of{" "}
+                <span className="font-semibold text-zinc-700">{applications.length}</span> applications
+            </p>
+
+            {/* ── Empty state ──────────────────────────────────────────────── */}
+            {filtered.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-2xl border border-dashed border-blue-100">
+                    <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
+                        <Filter className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <p className="text-sm font-semibold text-zinc-800">No applications found</p>
+                    <p className="text-xs text-zinc-400 mt-1">
+                        {search ? "Try a different search term or clear your filters" : "Browse available tasks and start applying"}
+                    </p>
+                    {!search && (
+                        <Link
+                            href="/tasks"
+                            className="mt-4 inline-flex items-center gap-1.5 h-8 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-colors shadow-sm shadow-blue-200"
+                        >
+                            <Briefcase className="h-3.5 w-3.5" /> Browse Tasks
+                        </Link>
+                    )}
+                </div>
+            )}
+
+            {/* ── Grid ─────────────────────────────────────────────────────── */}
+            {filtered.length > 0 && view === "grid" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {filtered.map((item) => (
+                        <ApplicationCard key={item.applicationId} item={item} />
+                    ))}
+                </div>
+            )}
+
+            {/* ── List ─────────────────────────────────────────────────────── */}
+            {filtered.length > 0 && view === "list" && (
+                <div className="flex flex-col gap-2">
+                    <div className="hidden md:flex items-center gap-4 px-5 py-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                        <span className="w-2.5" />
+                        <span className="flex-1">Task</span>
+                        <span className="w-24 hidden sm:block">Budget</span>
+                        <span className="w-24 hidden md:block">Your Offer</span>
+                        <span className="w-24 hidden sm:block">Status</span>
+                        <span className="w-20 hidden lg:block text-right">Applied</span>
+                        <span className="w-20">Action</span>
+                    </div>
+                    {filtered.map((item) => (
+                        <ApplicationRow key={item.applicationId} item={item} />
+                    ))}
+                </div>
+            )}
+
+        </div>
+    );
+}
