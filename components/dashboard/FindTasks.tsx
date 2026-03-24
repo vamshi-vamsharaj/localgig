@@ -111,8 +111,8 @@ function CategoryPill({
         <button
             onClick={onClick}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-150 whitespace-nowrap ${active
-                    ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-600/20"
-                    : "bg-white border-zinc-200 text-zinc-600 hover:border-blue-300 hover:text-blue-600"
+                ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-600/20"
+                : "bg-white border-zinc-200 text-zinc-600 hover:border-blue-300 hover:text-blue-600"
                 }`}
         >
             {cfg && (
@@ -278,6 +278,39 @@ export default function FindTasks({
     tasks: FindTask[];
     stats: Stats;
 }) {
+    const [search, setSearch] = useState("");
+    const [category, setCategory] = useState<Category>("All");
+    const [budgetRange, setBudgetRange] = useState(0); // index into BUDGET_RANGES
+    const [sort, setSort] = useState<SortKey>("newest");
+    const [view, setView] = useState<ViewMode>("grid");
+    const [showFilters, setShowFilters] = useState(false);
+
+    const categoryCount: Record<Category, number> = {
+        All: stats.total,
+        Moving: stats.moving,
+        Delivery: stats.delivery,
+        Repair: stats.repair,
+        Tutoring: stats.tutoring,
+        Photography: stats.photography,
+        Cleaning: stats.cleaning,
+    };
+
+    const filtered = useMemo(() => {
+        let result = [...tasks];
+
+        if (search.trim()) {
+            const q = search.toLowerCase();
+            result = result.filter(
+                (t) =>
+                    t.title.toLowerCase().includes(q) ||
+                    t.description.toLowerCase().includes(q) ||
+                    t.category.toLowerCase().includes(q) ||
+                    t.address.toLowerCase().includes(q)
+            );
+        }
+
+        return result;
+    }, [search]);
 
     return (
         <div className="space-y-6">
@@ -305,6 +338,28 @@ export default function FindTasks({
                 </Link>
             </div>
 
+            <div className="flex items-center gap-3 flex-wrap">
+
+                {/* Search */}
+                <div className="flex-1 min-w-[220px] relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-300" />
+                    <input
+                        type="text"
+                        placeholder="Search tasks, categories, locations..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full h-9 pl-9 pr-4 rounded-xl border border-zinc-200 bg-white text-sm text-zinc-800 placeholder-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition"
+                    />
+                    {search && (
+                        <button
+                            onClick={() => setSearch("")}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-zinc-500 transition"
+                        >
+                            <X className="h-3.5 w-3.5" />
+                        </button>
+                    )}
+                </div>
+            </div>
             <div>
                 {tasks.map((task) => (
                     <TaskCard key={task._id} task={task} />
