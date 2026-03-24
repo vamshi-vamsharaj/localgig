@@ -309,9 +309,34 @@ export default function FindTasks({
             );
         }
 
-        return result;
-    }, [search]);
+        if (category !== "All") {
+            result = result.filter((t) => t.category === category);
+        }
 
+        const { min, max } = BUDGET_RANGES[budgetRange];
+        if (min > 0 || max < Infinity) {
+            result = result.filter((t) => t.budget >= min && t.budget <= max);
+        }
+
+        result.sort((a, b) => {
+            if (sort === "newest") return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            if (sort === "oldest") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+            if (sort === "budget_high") return b.budget - a.budget;
+            if (sort === "budget_low") return a.budget - b.budget;
+            if (sort === "applicants") return b.applicantsCount - a.applicantsCount;
+            return 0;
+        });
+
+        return result;
+    }, [tasks, search, category, budgetRange ]);
+
+    const hasFilters = search || category !== "All" || budgetRange !== 0;
+
+    function clearFilters() {
+        setSearch("");
+        setCategory("All");
+        setBudgetRange(0);
+    }
     return (
         <div className="space-y-6">
 
@@ -338,6 +363,20 @@ export default function FindTasks({
                 </Link>
             </div>
 
+            {/* ── Category Pills ───────────────────────────────────────────── */}
+            <div className="flex gap-2 flex-wrap">
+                {CATEGORIES.map((cat) => (
+                    <CategoryPill
+                        key={cat}
+                        label={cat}
+                        count={categoryCount[cat]}
+                        active={category === cat}
+                        onClick={() => setCategory(cat)}
+                    />
+                ))}
+            </div>
+
+            {/* ── Toolbar ─────────────────────────────────────────────────── */}
             <div className="flex items-center gap-3 flex-wrap">
 
                 {/* Search */}
@@ -359,7 +398,86 @@ export default function FindTasks({
                         </button>
                     )}
                 </div>
-            </div>
+
+                {/* Filter toggle */}
+                <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={`h-9 px-3.5 flex items-center gap-1.5 rounded-xl border text-xs font-medium transition-all ${
+                        showFilters || budgetRange !== 0
+                            ? "border-blue-300 bg-blue-50 text-blue-600"
+                            : "border-zinc-200 text-zinc-500 hover:border-blue-300 hover:text-blue-600 bg-white"
+                    }`}
+                >
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
+                    Filters
+                    {budgetRange !== 0 && (
+                        <span className="h-4 w-4 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center">1</span>
+                    )}
+                </button>
+                </div>
+                {/* ── Expanded Filters ─────────────────────────────────────────── */}
+            {showFilters && (
+                <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
+                    <div className="flex items-center justify-between mb-4">
+                        <p className="text-sm font-semibold text-zinc-800">Budget Range</p>
+                        {budgetRange !== 0 && (
+                            <button
+                                onClick={() => setBudgetRange(0)}
+                                className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {BUDGET_RANGES.map((range, i) => (
+                            <button
+                                key={i}
+                                onClick={() => setBudgetRange(i)}
+                                className={`px-3.5 py-1.5 rounded-xl border text-xs font-medium transition-all ${
+                                    budgetRange === i
+                                        ? "bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-200"
+                                        : "border-zinc-200 text-zinc-600 hover:border-blue-300 hover:text-blue-600 bg-white"
+                                }`}
+                            >
+                                {range.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* ── Active filters bar ───────────────────────────────────────── */}
+            {hasFilters && (
+                <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-zinc-400 font-medium">Active:</span>
+                    {search && (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-200">
+                            "{search}"
+                            <button onClick={() => setSearch("")}><X className="h-3 w-3" /></button>
+                        </span>
+                    )}
+                    {category !== "All" && (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-200">
+                            {category}
+                            <button onClick={() => setCategory("All")}><X className="h-3 w-3" /></button>
+                        </span>
+                    )}
+                    {budgetRange !== 0 && (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-200">
+                            {BUDGET_RANGES[budgetRange].label}
+                            <button onClick={() => setBudgetRange(0)}><X className="h-3 w-3" /></button>
+                        </span>
+                    )}
+                    <button
+                        onClick={clearFilters}
+                        className="text-xs text-zinc-400 hover:text-red-500 font-medium transition-colors ml-1"
+                    >
+                        Clear all
+                    </button>
+                </div>
+            )}
+
             <div>
                 {tasks.map((task) => (
                     <TaskCard key={task._id} task={task} />
