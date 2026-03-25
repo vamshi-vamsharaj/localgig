@@ -328,7 +328,7 @@ export default function FindTasks({
         });
 
         return result;
-    }, [tasks, search, category, budgetRange ]);
+    }, [tasks, search, category, budgetRange, sort]);
 
     const hasFilters = search || category !== "All" || budgetRange !== 0;
 
@@ -414,6 +414,21 @@ export default function FindTasks({
                         <span className="h-4 w-4 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center">1</span>
                     )}
                 </button>
+                </div>
+                  {/* Sort */}
+                <div className="relative">
+                    <select
+                        value={sort}
+                        onChange={(e) => setSort(e.target.value as SortKey)}
+                        className="h-9 pl-3 pr-8 rounded-xl border border-zinc-200 bg-white text-xs text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 appearance-none cursor-pointer transition"
+                    >
+                        <option value="newest">Newest first</option>
+                        <option value="oldest">Oldest first</option>
+                        <option value="budget_high">Budget: High → Low</option>
+                        <option value="budget_low">Budget: Low → High</option>
+                        <option value="applicants">Most applicants</option>
+                    </select>
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 pointer-events-none" />
                 </div>
                 {/* ── Expanded Filters ─────────────────────────────────────────── */}
             {showFilters && (
