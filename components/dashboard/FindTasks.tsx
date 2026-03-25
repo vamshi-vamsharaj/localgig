@@ -429,6 +429,22 @@ export default function FindTasks({
                         <option value="applicants">Most applicants</option>
                     </select>
                     <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 pointer-events-none" />
+                    {/* View toggle */}
+                <div className="flex items-center bg-zinc-100 rounded-xl p-1 gap-0.5">
+                    {([["grid", LayoutGrid], ["list", List]] as const).map(([mode, Icon]) => (
+                        <button
+                            key={mode}
+                            onClick={() => setView(mode)}
+                            className={`h-7 w-7 flex items-center justify-center rounded-lg transition-all ${
+                                view === mode
+                                    ? "bg-blue-600 text-white shadow-sm"
+                                    : "text-zinc-400 hover:text-zinc-600 hover:bg-white/60"
+                            }`}
+                        >
+                            <Icon className="h-3.5 w-3.5" />
+                        </button>
+                    ))}
+                </div>
                 </div>
                 {/* ── Expanded Filters ─────────────────────────────────────────── */}
             {showFilters && (
@@ -493,20 +509,31 @@ export default function FindTasks({
                 </div>
             )}
 
-            <div>
-                {tasks.map((task) => (
-                    <TaskCard key={task._id} task={task} />
-                ))}
-            </div>
+            {/* ── Grid ─────────────────────────────────────────────────────── */}
+            {filtered.length > 0 && view === "grid" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {filtered.map((task) => (
+                        <TaskCard key={task._id} task={task} />
+                    ))}
+                </div>
+            )}
 
-
-            <div>
-                {tasks.map((task) => (
-                    <TaskRow key={task._id} task={task} />
-                ))}
-            </div>
-
-
+            {/* ── List ─────────────────────────────────────────────────────── */}
+            {filtered.length > 0 && view === "list" && (
+                <div className="flex flex-col gap-2">
+                    <div className="hidden md:flex items-center gap-4 px-5 py-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
+                        <span className="w-2.5" />
+                        <span className="flex-1">Task</span>
+                        <span className="w-28 hidden sm:block">Budget</span>
+                        <span className="w-24 hidden md:block">Applicants</span>
+                        <span className="w-20 hidden lg:block text-right">Posted</span>
+                        <span className="w-32">Actions</span>
+                    </div>
+                    {filtered.map((task) => (
+                        <TaskRow key={task._id} task={task} />
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
