@@ -55,13 +55,13 @@ const CATEGORY_CONFIG: Record<
     string,
     { bg: string; text: string; dot: string; iconBg: string }
 > = {
-    Moving: { bg: "bg-sky-50", text: "text-sky-700", dot: "bg-sky-400", iconBg: "bg-sky-100" },
-    Delivery: { bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-400", iconBg: "bg-amber-100" },
-    Repair: { bg: "bg-rose-50", text: "text-rose-700", dot: "bg-rose-400", iconBg: "bg-rose-100" },
-    Tutoring: { bg: "bg-violet-50", text: "text-violet-700", dot: "bg-violet-400", iconBg: "bg-violet-100" },
-    Photography: { bg: "bg-pink-50", text: "text-pink-700", dot: "bg-pink-400", iconBg: "bg-pink-100" },
-    Cleaning: { bg: "bg-teal-50", text: "text-teal-700", dot: "bg-teal-400", iconBg: "bg-teal-100" },
-    General: { bg: "bg-zinc-100", text: "text-zinc-600", dot: "bg-zinc-400", iconBg: "bg-zinc-100" },
+    Moving:      { bg: "bg-sky-50",    text: "text-sky-700",    dot: "bg-sky-400",    iconBg: "bg-sky-100" },
+    Delivery:    { bg: "bg-amber-50",  text: "text-amber-700",  dot: "bg-amber-400",  iconBg: "bg-amber-100" },
+    Repair:      { bg: "bg-rose-50",   text: "text-rose-700",   dot: "bg-rose-400",   iconBg: "bg-rose-100" },
+    Tutoring:    { bg: "bg-violet-50", text: "text-violet-700", dot: "bg-violet-400", iconBg: "bg-violet-100" },
+    Photography: { bg: "bg-pink-50",   text: "text-pink-700",   dot: "bg-pink-400",   iconBg: "bg-pink-100" },
+    Cleaning:    { bg: "bg-teal-50",   text: "text-teal-700",   dot: "bg-teal-400",   iconBg: "bg-teal-100" },
+    General:     { bg: "bg-zinc-100",  text: "text-zinc-600",   dot: "bg-zinc-400",   iconBg: "bg-zinc-100" },
 };
 
 const BUDGET_RANGES = [
@@ -110,23 +110,66 @@ function CategoryPill({
     return (
         <button
             onClick={onClick}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-150 whitespace-nowrap ${active
-                ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-600/20"
-                : "bg-white border-zinc-200 text-zinc-600 hover:border-blue-300 hover:text-blue-600"
-                }`}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-150 whitespace-nowrap ${
+                active
+                    ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-600/20"
+                    : "bg-white border-zinc-200 text-zinc-600 hover:border-blue-300 hover:text-blue-600"
+            }`}
         >
             {cfg && (
                 <span className={`h-2 w-2 rounded-full ${active ? "bg-white/70" : cfg.dot}`} />
             )}
             {label}
-            <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${active ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-500"
-                }`}>
+            <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+                active ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-500"
+            }`}>
                 {count}
             </span>
         </button>
     );
 }
 
+// ─── Apply Button ─────────────────────────────────────────────────────────────
+
+function ApplyButton({ taskId, hasApplied }: { taskId: string; hasApplied: boolean }) {
+    const [applied, setApplied] = useState(hasApplied);
+    const [isPending, startTransition] = useTransition();
+
+    async function handleApply() {
+        if (applied || isPending) return;
+        startTransition(async () => {
+            try {
+                const res = await fetch("/api/applications", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ taskId }),
+                });
+                if (res.ok) setApplied(true);
+            } catch {
+                // silently fail — user can retry
+            }
+        });
+    }
+
+    if (applied) {
+        return (
+            <span className="flex items-center gap-1.5 h-9 px-4 rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 text-xs font-semibold">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Applied
+            </span>
+        );
+    }
+
+    return (
+        <button
+            onClick={handleApply}
+            disabled={isPending}
+            className="flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-colors shadow-sm shadow-blue-200 disabled:opacity-70 disabled:cursor-not-allowed"
+        >
+            {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Apply Now"}
+        </button>
+    );
+}
 
 // ─── Task Card (grid) ─────────────────────────────────────────────────────────
 
@@ -201,6 +244,7 @@ function TaskCard({ task }: { task: FindTask }) {
 
                 {/* Actions */}
                 <div className="flex gap-2">
+                    <ApplyButton taskId={task._id} hasApplied={task.hasApplied} />
                     <Link
                         href={`/tasks/${task._id}`}
                         className="flex items-center justify-center h-9 w-9 rounded-xl border border-zinc-200 text-zinc-400 hover:text-blue-600 hover:border-blue-300 transition-colors"
@@ -258,6 +302,7 @@ function TaskRow({ task }: { task: FindTask }) {
 
             {/* Actions */}
             <div className="flex items-center gap-2 shrink-0">
+                <ApplyButton taskId={task._id} hasApplied={task.hasApplied} />
                 <Link
                     href={`/tasks/${task._id}`}
                     className="h-9 w-9 flex items-center justify-center rounded-xl border border-zinc-200 text-zinc-400 hover:text-blue-600 hover:border-blue-300 transition-colors"
@@ -337,6 +382,7 @@ export default function FindTasks({
         setCategory("All");
         setBudgetRange(0);
     }
+
     return (
         <div className="space-y-6">
 
@@ -414,8 +460,8 @@ export default function FindTasks({
                         <span className="h-4 w-4 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center">1</span>
                     )}
                 </button>
-                </div>
-                  {/* Sort */}
+
+                {/* Sort */}
                 <div className="relative">
                     <select
                         value={sort}
@@ -429,7 +475,9 @@ export default function FindTasks({
                         <option value="applicants">Most applicants</option>
                     </select>
                     <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 pointer-events-none" />
-                    {/* View toggle */}
+                </div>
+
+                {/* View toggle */}
                 <div className="flex items-center bg-zinc-100 rounded-xl p-1 gap-0.5">
                     {([["grid", LayoutGrid], ["list", List]] as const).map(([mode, Icon]) => (
                         <button
@@ -445,8 +493,9 @@ export default function FindTasks({
                         </button>
                     ))}
                 </div>
-                </div>
-                {/* ── Expanded Filters ─────────────────────────────────────────── */}
+            </div>
+
+            {/* ── Expanded Filters ─────────────────────────────────────────── */}
             {showFilters && (
                 <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm p-5">
                     <div className="flex items-center justify-between mb-4">
@@ -509,6 +558,33 @@ export default function FindTasks({
                 </div>
             )}
 
+            {/* ── Results count ────────────────────────────────────────────── */}
+            <p className="text-xs text-zinc-400">
+                Showing <span className="font-semibold text-blue-600">{filtered.length}</span> of{" "}
+                <span className="font-semibold text-zinc-700">{tasks.length}</span> tasks
+            </p>
+
+            {/* ── Empty state ──────────────────────────────────────────────── */}
+            {filtered.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-24 text-center bg-white rounded-2xl border border-dashed border-blue-100">
+                    <div className="h-12 w-12 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
+                        <Briefcase className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <p className="text-sm font-semibold text-zinc-800">No tasks found</p>
+                    <p className="text-xs text-zinc-400 mt-1">
+                        {hasFilters ? "Try adjusting your search or filters" : "No open tasks available right now"}
+                    </p>
+                    {hasFilters && (
+                        <button
+                            onClick={clearFilters}
+                            className="mt-4 inline-flex items-center gap-1.5 h-8 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-colors shadow-sm shadow-blue-200"
+                        >
+                            <X className="h-3.5 w-3.5" /> Clear Filters
+                        </button>
+                    )}
+                </div>
+            )}
+
             {/* ── Grid ─────────────────────────────────────────────────────── */}
             {filtered.length > 0 && view === "grid" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -534,6 +610,7 @@ export default function FindTasks({
                     ))}
                 </div>
             )}
+
         </div>
     );
 }
