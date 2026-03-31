@@ -112,3 +112,63 @@ export async function getMessages(
         createdAt:      (m.createdAt as Date).toISOString(),
     }));
 }
+
+export async function markMessagesRead(
+    conversationId: string,
+    userId: string
+): Promise<ActionResult> {
+    try {
+        await connectDB();
+
+        await Message.updateMany(
+            { conversationId, receiverId: userId, status: { $ne: "read" } },
+            { status: "read" }
+        );
+
+        await Conversation.findByIdAndUpdate(conversationId, { unreadCount: 0 });
+
+        return { success: true, data: undefined };
+    } catch {
+        return { success: false, error: "Failed to mark messages as read" };
+    }
+}
+
+// ─── Get all conversations for a user (inbox) ─────────────────────────────────
+
+export async function getConversations(userId: string) {
+    await connectDB();
+
+    const oid = new mongoose.Types.ObjectId(userId);
+
+    const conversations = await Conversation.find({
+        $or: [{ clientId: oid }, { workerId: oid }],
+    })
+        .populate("taskId", "title status")
+        .populate("clientId", "name avatar")
+        .populate("workerId", "name avatar")
+        .sort({ updatedAt: -1 })
+        .lean();
+
+    return conversations.map((c: any) => ({
+        _id:           c._id.toString(),
+        taskId:        c.taskId?._id?.toString(),
+        taskTitle:     c.taskId?.title,
+        taskStatus:    c.taskId?.status,
+        client: {
+            _id:    c.clientId?._id?.toString(),
+            name:   c.clientId?.name,
+            avatar: c.clientId?.avatar,
+        },
+        worker: {
+            _id:    c.workerId?._id?.toString(),
+            name:   c.workerId?.name,
+            avatar: c.workerId?.avatar,
+        },
+        lastMessage:   c.lastMessage,
+        lastMessageAt: c.lastMessageAt?.toISOString(),
+        unreadCount:   c.unreadCount,
+        updatedAt:     (c.updatedAt as Date).toISOString(),
+        // Flag which side the current user is on
+        role: c.clientId?._id?.toString() === userId ? "client" : "worker",
+    }));
+}
