@@ -99,3 +99,66 @@ export async function getUserSettings(userId: string): Promise<ActionResult<User
         return { success: false, error: "Failed to fetch settings" };
     }
 }
+
+// ─── Update notification settings ────────────────────────────────────────────
+
+export async function updateNotificationSettings(
+    userId: string,
+    updates: Partial<UserSettings["notifications"]>
+): Promise<ActionResult> {
+    try {
+        await connectDB();
+
+        const patch: Record<string, unknown> = {};
+        for (const [key, val] of Object.entries(updates)) {
+            patch[`settings.notifications.${key}`] = val;
+        }
+
+        await User.findByIdAndUpdate(userId, { $set: patch });
+        return { success: true, data: undefined };
+    } catch {
+        return { success: false, error: "Failed to update notifications" };
+    }
+}
+
+// ─── Update preference settings ──────────────────────────────────────────────
+
+export async function updatePreferences(
+    userId: string,
+    updates: Partial<UserSettings["preferences"]>
+): Promise<ActionResult> {
+    try {
+        await connectDB();
+
+        const patch: Record<string, unknown> = {};
+        for (const [key, val] of Object.entries(updates)) {
+            patch[`settings.preferences.${key}`] = val;
+        }
+
+        await User.findByIdAndUpdate(userId, { $set: patch });
+        return { success: true, data: undefined };
+    } catch {
+        return { success: false, error: "Failed to update preferences" };
+    }
+}
+
+// ─── Update privacy settings ──────────────────────────────────────────────────
+
+export async function updatePrivacySettings(
+    userId: string,
+    updates: Partial<UserSettings["privacy"]>
+): Promise<ActionResult> {
+    try {
+        await connectDB();
+
+        const patch: Record<string, unknown> = {};
+        for (const [key, val] of Object.entries(updates)) {
+            patch[`settings.privacy.${key}`] = val;
+        }
+
+        await User.findByIdAndUpdate(userId, { $set: patch });
+        return { success: true, data: undefined };
+    } catch {
+        return { success: false, error: "Failed to update privacy settings" };
+    }
+}
