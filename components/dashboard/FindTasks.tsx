@@ -19,8 +19,10 @@ import {
     SlidersHorizontal,
     X,
     Sparkles,
+    Bookmark,
 } from "lucide-react";
 import type { FindTask } from "@/lib/actions/find-tasks";
+import { toggleSaveTask } from "@/lib/actions/savedTasks";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,13 +57,13 @@ const CATEGORY_CONFIG: Record<
     string,
     { bg: string; text: string; dot: string; iconBg: string }
 > = {
-    Moving:      { bg: "bg-sky-50",    text: "text-sky-700",    dot: "bg-sky-400",    iconBg: "bg-sky-100" },
-    Delivery:    { bg: "bg-amber-50",  text: "text-amber-700",  dot: "bg-amber-400",  iconBg: "bg-amber-100" },
-    Repair:      { bg: "bg-rose-50",   text: "text-rose-700",   dot: "bg-rose-400",   iconBg: "bg-rose-100" },
-    Tutoring:    { bg: "bg-violet-50", text: "text-violet-700", dot: "bg-violet-400", iconBg: "bg-violet-100" },
-    Photography: { bg: "bg-pink-50",   text: "text-pink-700",   dot: "bg-pink-400",   iconBg: "bg-pink-100" },
-    Cleaning:    { bg: "bg-teal-50",   text: "text-teal-700",   dot: "bg-teal-400",   iconBg: "bg-teal-100" },
-    General:     { bg: "bg-zinc-100",  text: "text-zinc-600",   dot: "bg-zinc-400",   iconBg: "bg-zinc-100" },
+    Moving: { bg: "bg-sky-50", text: "text-sky-700", dot: "bg-sky-400", iconBg: "bg-sky-100" },
+    Delivery: { bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-400", iconBg: "bg-amber-100" },
+    Repair: { bg: "bg-rose-50", text: "text-rose-700", dot: "bg-rose-400", iconBg: "bg-rose-100" },
+    Tutoring: { bg: "bg-violet-50", text: "text-violet-700", dot: "bg-violet-400", iconBg: "bg-violet-100" },
+    Photography: { bg: "bg-pink-50", text: "text-pink-700", dot: "bg-pink-400", iconBg: "bg-pink-100" },
+    Cleaning: { bg: "bg-teal-50", text: "text-teal-700", dot: "bg-teal-400", iconBg: "bg-teal-100" },
+    General: { bg: "bg-zinc-100", text: "text-zinc-600", dot: "bg-zinc-400", iconBg: "bg-zinc-100" },
 };
 
 const BUDGET_RANGES = [
@@ -110,19 +112,17 @@ function CategoryPill({
     return (
         <button
             onClick={onClick}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-150 whitespace-nowrap ${
-                active
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-150 whitespace-nowrap ${active
                     ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-600/20"
                     : "bg-white border-zinc-200 text-zinc-600 hover:border-blue-300 hover:text-blue-600"
-            }`}
+                }`}
         >
             {cfg && (
                 <span className={`h-2 w-2 rounded-full ${active ? "bg-white/70" : cfg.dot}`} />
             )}
             {label}
-            <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${
-                active ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-500"
-            }`}>
+            <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${active ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-500"
+                }`}>
                 {count}
             </span>
         </button>
@@ -171,9 +171,70 @@ function ApplyButton({ taskId, hasApplied }: { taskId: string; hasApplied: boole
     );
 }
 
+// ─── Bookmark Button ──────────────────────────────────────────────────────────
+// Self-contained: owns its own optimistic state, calls toggleSaveTask directly.
+
+function BookmarkButton({
+    taskId,
+    userId,
+    isSaved: initialSaved,
+    size = "md",
+}: {
+    taskId: string;
+    userId: string;
+    isSaved: boolean;
+    size?: "sm" | "md";
+}) {
+    const [saved, setSaved] = useState(initialSaved);
+    const [isPending, startTransition] = useTransition();
+
+    function handleToggle() {
+        if (isPending) return;
+
+        // Optimistic update — instant
+        setSaved((prev) => !prev);
+
+        startTransition(async () => {
+            const result = await toggleSaveTask(userId, taskId);
+            if (!result.success) {
+                // Rollback if server call fails
+                setSaved((prev) => !prev);
+            }
+        });
+    }
+
+    const sizeClasses = size === "sm"
+        ? "h-9 w-9"
+        : "h-10 w-10";
+
+    return (
+        <button
+            onClick={handleToggle}
+            disabled={isPending}
+            title={saved ? "Remove from saved" : "Save task"}
+            aria-label={saved ? "Remove from saved" : "Save task"}
+            className={`
+                ${sizeClasses} shrink-0 flex items-center justify-center rounded-xl border
+                transition-all duration-200
+                ${saved
+                    ? "bg-blue-600 border-blue-600 text-white hover:bg-red-500 hover:border-red-500 shadow-sm shadow-blue-200"
+                    : "border-zinc-200 text-zinc-400 hover:border-blue-300 hover:text-blue-600 bg-white"
+                }
+                disabled:opacity-60 disabled:cursor-not-allowed
+            `}
+        >
+            {isPending
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <Bookmark className="h-4 w-4" fill={saved ? "currentColor" : "none"} strokeWidth={2} />
+            }
+        </button>
+    );
+}
+
+
 // ─── Task Card (grid) ─────────────────────────────────────────────────────────
 
-function TaskCard({ task }: { task: FindTask }) {
+function TaskCard({ task, userId, isSaved }: { task: FindTask; userId: string; isSaved: boolean }) {
     const cfg = CATEGORY_CONFIG[task.category] ?? CATEGORY_CONFIG.General;
 
     return (
@@ -245,6 +306,7 @@ function TaskCard({ task }: { task: FindTask }) {
                 {/* Actions */}
                 <div className="flex gap-2">
                     <ApplyButton taskId={task._id} hasApplied={task.hasApplied} />
+                    <BookmarkButton taskId={task._id} userId={userId} isSaved={isSaved} />
                     <Link
                         href={`/tasks/${task._id}`}
                         className="flex items-center justify-center h-9 w-9 rounded-xl border border-zinc-200 text-zinc-400 hover:text-blue-600 hover:border-blue-300 transition-colors"
@@ -260,7 +322,7 @@ function TaskCard({ task }: { task: FindTask }) {
 
 // ─── Task Row (list) ──────────────────────────────────────────────────────────
 
-function TaskRow({ task }: { task: FindTask }) {
+function TaskRow({ task, userId, isSaved }: { task: FindTask; userId: string; isSaved: boolean }) {
     const cfg = CATEGORY_CONFIG[task.category] ?? CATEGORY_CONFIG.General;
 
     return (
@@ -303,6 +365,7 @@ function TaskRow({ task }: { task: FindTask }) {
             {/* Actions */}
             <div className="flex items-center gap-2 shrink-0">
                 <ApplyButton taskId={task._id} hasApplied={task.hasApplied} />
+                <BookmarkButton taskId={task._id} userId={userId} isSaved={isSaved} size="sm" />
                 <Link
                     href={`/tasks/${task._id}`}
                     className="h-9 w-9 flex items-center justify-center rounded-xl border border-zinc-200 text-zinc-400 hover:text-blue-600 hover:border-blue-300 transition-colors"
@@ -314,15 +377,18 @@ function TaskRow({ task }: { task: FindTask }) {
     );
 }
 
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
-export default function FindTasks({
-    tasks,
-    stats,
-}: {
+
+interface FindTasksProps {
     tasks: FindTask[];
     stats: Stats;
-}) {
+    initialSavedIds: string[];
+    userId: string;
+}
+
+export default function FindTasks({ tasks, stats, initialSavedIds, userId }: FindTasksProps) {
     const [search, setSearch] = useState("");
     const [category, setCategory] = useState<Category>("All");
     const [budgetRange, setBudgetRange] = useState(0); // index into BUDGET_RANGES
@@ -330,14 +396,12 @@ export default function FindTasks({
     const [view, setView] = useState<ViewMode>("grid");
     const [showFilters, setShowFilters] = useState(false);
 
+    const [savedIds] = useState<Set<string>>(new Set(initialSavedIds));
+
     const categoryCount: Record<Category, number> = {
-        All: stats.total,
-        Moving: stats.moving,
-        Delivery: stats.delivery,
-        Repair: stats.repair,
-        Tutoring: stats.tutoring,
-        Photography: stats.photography,
-        Cleaning: stats.cleaning,
+        All: stats.total, Moving: stats.moving, Delivery: stats.delivery,
+        Repair: stats.repair, Tutoring: stats.tutoring,
+        Photography: stats.photography, Cleaning: stats.cleaning,
     };
 
     const filtered = useMemo(() => {
@@ -345,23 +409,18 @@ export default function FindTasks({
 
         if (search.trim()) {
             const q = search.toLowerCase();
-            result = result.filter(
-                (t) =>
-                    t.title.toLowerCase().includes(q) ||
-                    t.description.toLowerCase().includes(q) ||
-                    t.category.toLowerCase().includes(q) ||
-                    t.address.toLowerCase().includes(q)
+            result = result.filter((t) =>
+                t.title.toLowerCase().includes(q) ||
+                t.description.toLowerCase().includes(q) ||
+                t.category.toLowerCase().includes(q) ||
+                t.address.toLowerCase().includes(q)
             );
         }
 
-        if (category !== "All") {
-            result = result.filter((t) => t.category === category);
-        }
+        if (category !== "All") result = result.filter((t) => t.category === category);
 
         const { min, max } = BUDGET_RANGES[budgetRange];
-        if (min > 0 || max < Infinity) {
-            result = result.filter((t) => t.budget >= min && t.budget <= max);
-        }
+        if (min > 0 || max < Infinity) result = result.filter((t) => t.budget >= min && t.budget <= max);
 
         result.sort((a, b) => {
             if (sort === "newest") return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -376,12 +435,7 @@ export default function FindTasks({
     }, [tasks, search, category, budgetRange, sort]);
 
     const hasFilters = search || category !== "All" || budgetRange !== 0;
-
-    function clearFilters() {
-        setSearch("");
-        setCategory("All");
-        setBudgetRange(0);
-    }
+    function clearFilters() { setSearch(""); setCategory("All"); setBudgetRange(0); }
 
     return (
         <div className="space-y-6">
@@ -400,13 +454,31 @@ export default function FindTasks({
                         Browse all available gigs near you on LocalGig
                     </p>
                 </div>
-                <Link
+                {/* <Link
                     href="/tasks/new"
                     className="inline-flex items-center gap-2 h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors shadow-sm shadow-blue-200"
                 >
                     <Briefcase className="h-4 w-4" />
                     Post a Task
-                </Link>
+                </Link> */}
+                <div className="flex items-center gap-2">
+                    {savedIds.size > 0 && (
+                        <Link
+                            href="/dashboard/saved"
+                            className="inline-flex items-center gap-2 h-11 px-4 rounded-xl border border-zinc-200 bg-white text-zinc-600 hover:border-blue-300 hover:text-blue-600 text-sm font-semibold transition-colors"
+                        >
+                            <Bookmark className="h-4 w-4" fill="currentColor" />
+                            {savedIds.size} saved
+                        </Link>
+                    )}
+                    <Link
+                        href="/tasks/new"
+                        className="inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition-colors shadow-md shadow-blue-200"
+                    >
+                        <Briefcase className="h-4 w-4" />
+                        Post a Task
+                    </Link>
+                </div>
             </div>
 
             {/* ── Category Pills ───────────────────────────────────────────── */}
@@ -448,11 +520,10 @@ export default function FindTasks({
                 {/* Filter toggle */}
                 <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className={`h-9 px-3.5 flex items-center gap-1.5 rounded-xl border text-xs font-medium transition-all ${
-                        showFilters || budgetRange !== 0
+                    className={`h-9 px-3.5 flex items-center gap-1.5 rounded-xl border text-xs font-medium transition-all ${showFilters || budgetRange !== 0
                             ? "border-blue-300 bg-blue-50 text-blue-600"
                             : "border-zinc-200 text-zinc-500 hover:border-blue-300 hover:text-blue-600 bg-white"
-                    }`}
+                        }`}
                 >
                     <SlidersHorizontal className="h-3.5 w-3.5" />
                     Filters
@@ -483,11 +554,10 @@ export default function FindTasks({
                         <button
                             key={mode}
                             onClick={() => setView(mode)}
-                            className={`h-7 w-7 flex items-center justify-center rounded-lg transition-all ${
-                                view === mode
+                            className={`h-7 w-7 flex items-center justify-center rounded-lg transition-all ${view === mode
                                     ? "bg-blue-600 text-white shadow-sm"
                                     : "text-zinc-400 hover:text-zinc-600 hover:bg-white/60"
-                            }`}
+                                }`}
                         >
                             <Icon className="h-3.5 w-3.5" />
                         </button>
@@ -514,11 +584,10 @@ export default function FindTasks({
                             <button
                                 key={i}
                                 onClick={() => setBudgetRange(i)}
-                                className={`px-3.5 py-1.5 rounded-xl border text-xs font-medium transition-all ${
-                                    budgetRange === i
+                                className={`px-3.5 py-1.5 rounded-xl border text-xs font-medium transition-all ${budgetRange === i
                                         ? "bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-200"
                                         : "border-zinc-200 text-zinc-600 hover:border-blue-300 hover:text-blue-600 bg-white"
-                                }`}
+                                    }`}
                             >
                                 {range.label}
                             </button>
@@ -589,7 +658,12 @@ export default function FindTasks({
             {filtered.length > 0 && view === "grid" && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                     {filtered.map((task) => (
-                        <TaskCard key={task._id} task={task} />
+                        <TaskCard
+                            key={task._id}
+                            task={task}
+                            userId={userId}
+                            isSaved={savedIds.has(task._id)}
+                        />
                     ))}
                 </div>
             )}
@@ -606,7 +680,12 @@ export default function FindTasks({
                         <span className="w-32">Actions</span>
                     </div>
                     {filtered.map((task) => (
-                        <TaskRow key={task._id} task={task} />
+                        <TaskRow
+                            key={task._id}
+                            task={task}
+                            userId={userId}
+                            isSaved={savedIds.has(task._id)}
+                        />
                     ))}
                 </div>
             )}
