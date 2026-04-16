@@ -98,3 +98,42 @@ function SavedTaskRow({
         </div>
     );
 }
+
+// ─── Empty State ──────────────────────────────────────────────────────────────
+
+function EmptyState({ hasFilters, onClear }: { hasFilters: boolean; onClear: () => void }) {
+    return (
+        <div className="flex flex-col items-center justify-center py-28 text-center bg-white rounded-2xl border border-dashed border-blue-100">
+            <div className="h-16 w-16 rounded-2xl bg-blue-50 flex items-center justify-center mb-5">
+                {hasFilters
+                    ? <Search className="h-7 w-7 text-blue-600" />
+                    : <Bookmark className="h-7 w-7 text-blue-600" />
+                }
+            </div>
+            <p className="text-xl font-bold text-zinc-800">
+                {hasFilters ? "No matching tasks" : "No saved tasks yet"}
+            </p>
+            <p className="text-sm text-zinc-400 mt-2 font-medium max-w-xs">
+                {hasFilters
+                    ? "Try a different search or clear your filters"
+                    : "Browse available tasks and bookmark the ones you're interested in"
+                }
+            </p>
+            {hasFilters ? (
+                <button
+                    onClick={onClear}
+                    className="mt-5 inline-flex items-center gap-2 h-10 px-5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition-colors shadow-sm shadow-blue-200"
+                >
+                    <X className="h-4 w-4" /> Clear Filters
+                </button>
+            ) : (
+                <Link
+                    href="/dashboard/tasks"
+                    className="mt-5 inline-flex items-center gap-2 h-10 px-5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition-colors shadow-sm shadow-blue-200"
+                >
+                    <Compass className="h-4 w-4" /> Browse Tasks
+                </Link>
+            )}
+        </div>
+    );
+}
