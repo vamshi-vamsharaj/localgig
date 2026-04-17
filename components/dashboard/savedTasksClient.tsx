@@ -185,10 +185,38 @@ export default function SavedTasksClient({ initialTasks, initialSavedIds, userId
         });
     }
 
+// ── Filtering + sorting ───────────────────────────────────────────────────
+    const filtered = useMemo(() => {
+        let result = [...tasks];
 
+        if (search.trim()) {
+            const q = search.toLowerCase();
+            result = result.filter(
+                (t) =>
+                    t.title.toLowerCase().includes(q) ||
+                    (t.category ?? "").toLowerCase().includes(q) ||
+                    t.address.toLowerCase().includes(q)
+            );
+        }
+
+        if (category !== "All") {
+            result = result.filter((t) => (t.category ?? "General") === category);
+        }
+
+        result.sort((a, b) => {
+            if (sort === "newest")      return new Date(b.createdAt as unknown as string).getTime() - new Date(a.createdAt as unknown as string).getTime();
+            if (sort === "oldest")      return new Date(a.createdAt as unknown as string).getTime() - new Date(b.createdAt as unknown as string).getTime();
+            if (sort === "budget_high") return b.budget - a.budget;
+            if (sort === "budget_low")  return a.budget - b.budget;
+            return 0;
+        });
+
+        return result;
+    }, [tasks, search, category, sort]);
 
     const hasFilters = search.trim() !== "" || category !== "All";
     function clearFilters() { setSearch(""); setCategory("All"); }
+
 
     // ── Render ────────────────────────────────────────────────────────────────
     return (
