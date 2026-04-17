@@ -156,6 +156,34 @@ export default function SavedTasksClient({ initialTasks, initialSavedIds, userId
     const [view, setView] = useState<ViewMode>("grid");
     const [isPending, startTransition] = useTransition();
 
+// ── Unsave handler (optimistic) ───────────────────────────────────────────
+    function handleUnsave(taskId: string) {
+        if (unsavingIds.has(taskId)) return;
+
+        // 1. Instant UI: mark as unsaving → remove from list
+        setUnsavingIds((prev) => new Set(prev).add(taskId));
+
+        // Small delay so user sees the animation before removal
+        setTimeout(() => {
+            setTasks((prev) => prev.filter((t) => t._id !== taskId));
+            setSavedIds((prev) => { const next = new Set(prev); next.delete(taskId); return next; });
+            setUnsavingIds((prev) => { const next = new Set(prev); next.delete(taskId); return next; });
+        }, 300);
+
+        // 2. Background server call
+        startTransition(async () => {
+            const result = await toggleSaveTask(userId, taskId);
+            if (!result.success) {
+                // Rollback: restore the task
+                setTasks((prev) => {
+                    const removed = initialTasks.find((t) => t._id === taskId);
+                    if (!removed) return prev;
+                    return [removed, ...prev];
+                });
+                setSavedIds((prev) => new Set(prev).add(taskId));
+            }
+        });
+    }
 
 
 
