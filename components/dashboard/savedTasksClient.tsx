@@ -18,19 +18,19 @@ import type { Task } from "@/lib/models/models.types";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ViewMode = "grid" | "list";
-type SortKey  = "newest" | "oldest" | "budget_high" | "budget_low";
+type SortKey = "newest" | "oldest" | "budget_high" | "budget_low";
 
 const CATEGORIES = ["All", "Moving", "Delivery", "Repair", "Tutoring", "Photography", "Cleaning"] as const;
 type Category = (typeof CATEGORIES)[number];
 
 const CATEGORY_COLORS: Record<string, string> = {
-    Moving:      "bg-sky-50 text-sky-700",
-    Delivery:    "bg-amber-50 text-amber-700",
-    Repair:      "bg-rose-50 text-rose-700",
-    Tutoring:    "bg-violet-50 text-violet-700",
+    Moving: "bg-sky-50 text-sky-700",
+    Delivery: "bg-amber-50 text-amber-700",
+    Repair: "bg-rose-50 text-rose-700",
+    Tutoring: "bg-violet-50 text-violet-700",
     Photography: "bg-pink-50 text-pink-700",
-    Cleaning:    "bg-teal-50 text-teal-700",
-    General:     "bg-zinc-100 text-zinc-600",
+    Cleaning: "bg-teal-50 text-teal-700",
+    General: "bg-zinc-100 text-zinc-600",
 };
 
 // ─── List Row ─────────────────────────────────────────────────────────────────
@@ -49,10 +49,10 @@ function SavedTaskRow({
     const categoryStyle = CATEGORY_COLORS[task.category ?? "General"] ?? CATEGORY_COLORS.General;
 
     const STATUS_DOT: Record<string, string> = {
-        open:        "bg-emerald-400",
+        open: "bg-emerald-400",
         in_progress: "bg-amber-400",
-        completed:   "bg-blue-400",
-        cancelled:   "bg-zinc-300",
+        completed: "bg-blue-400",
+        cancelled: "bg-zinc-300",
     };
 
     return (
@@ -86,11 +86,10 @@ function SavedTaskRow({
                 <button
                     onClick={() => onUnsave(task._id)}
                     disabled={isUnsaving}
-                    className={`h-9 w-9 flex items-center justify-center rounded-xl border transition-all ${
-                        isSaved
+                    className={`h-9 w-9 flex items-center justify-center rounded-xl border transition-all ${isSaved
                             ? "bg-blue-600 border-blue-600 text-white hover:bg-red-500 hover:border-red-500"
                             : "border-zinc-200 text-zinc-400 hover:border-blue-300 hover:text-blue-600"
-                    } disabled:opacity-50`}
+                        } disabled:opacity-50`}
                 >
                     <Bookmark className="h-4 w-4" fill={isSaved ? "currentColor" : "none"} />
                 </button>
@@ -134,6 +133,64 @@ function EmptyState({ hasFilters, onClear }: { hasFilters: boolean; onClear: () 
                     <Compass className="h-4 w-4" /> Browse Tasks
                 </Link>
             )}
+        </div>
+    );
+}
+
+// ─── Main Client Component ────────────────────────────────────────────────────
+
+interface Props {
+    initialTasks: Task[];
+    initialSavedIds: string[];
+    userId: string;
+}
+
+export default function SavedTasksClient({ initialTasks, initialSavedIds, userId }: Props) {
+    // ── State ─────────────────────────────────────────────────────────────────
+    const [tasks, setTasks] = useState<Task[]>(initialTasks);
+    const [savedIds, setSavedIds] = useState<Set<string>>(new Set(initialSavedIds));
+    const [unsavingIds, setUnsavingIds] = useState<Set<string>>(new Set());
+    const [search, setSearch] = useState("");
+    const [category, setCategory] = useState<Category>("All");
+    const [sort, setSort] = useState<SortKey>("newest");
+    const [view, setView] = useState<ViewMode>("grid");
+    const [isPending, startTransition] = useTransition();
+
+
+
+
+    const hasFilters = search.trim() !== "" || category !== "All";
+    function clearFilters() { setSearch(""); setCategory("All"); }
+
+    // ── Render ────────────────────────────────────────────────────────────────
+    return (
+        <div className="space-y-7">
+
+            {/* ── Header ──────────────────────────────────────────────────── */}
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Saved Tasks</h1>
+                        <span className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1 rounded-full bg-blue-50 text-blue-600 ring-1 ring-blue-200">
+                            <Bookmark className="h-3.5 w-3.5" fill="currentColor" />
+                            {tasks.length} saved
+                        </span>
+                    </div>
+                    <p className="text-base text-zinc-400 mt-1 font-medium">
+                        Tasks you've bookmarked for later
+                    </p>
+                </div>
+                <Link
+                    href="/dashboard/tasks"
+                    className="inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition-colors shadow-md shadow-blue-200"
+                >
+                    <Compass className="h-4 w-4" />
+                    Browse Tasks
+                </Link>
+            </div>
+
+
+
         </div>
     );
 }
