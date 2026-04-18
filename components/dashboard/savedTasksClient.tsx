@@ -245,7 +245,49 @@ export default function SavedTasksClient({ initialTasks, initialSavedIds, userId
                 </Link>
             </div>
 
+ {/* ── Toolbar ─────────────────────────────────────────────────── */}
+            {tasks.length > 0 && (
+                <div className="flex items-center gap-3 flex-wrap">
 
+                    {/* Search */}
+                    <div className="flex-1 min-w-[220px] relative">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-300" />
+                        <input
+                            type="text"
+                            placeholder="Search by title, category or location..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="w-full h-11 pl-11 pr-10 rounded-xl border border-zinc-200 bg-white text-sm font-medium text-zinc-800 placeholder-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition"
+                        />
+                        {search && (
+                            <button
+                                onClick={() => setSearch("")}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-zinc-500 transition"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
+                    </div>
+
+                    {/* Category tabs */}
+                    <div className="hidden sm:flex items-center bg-zinc-100 rounded-xl p-1 gap-0.5">
+                        {CATEGORIES.map((cat) => (
+                            <button
+                                key={cat}
+                                onClick={() => setCategory(cat)}
+                                className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                                    category === cat
+                                        ? "bg-blue-600 text-white shadow-sm"
+                                        : "text-zinc-500 hover:text-zinc-700 hover:bg-white/60"
+                                }`}
+                            >
+                                {cat}
+                            </button>
+                        ))}
+                    </div>
+
+                </div>
+            )}
 
         </div>
     );
