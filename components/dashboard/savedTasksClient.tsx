@@ -286,6 +286,37 @@ export default function SavedTasksClient({ initialTasks, initialSavedIds, userId
                         ))}
                     </div>
 
+                    {/* Sort */}
+                    <div className="relative">
+                        <select
+                            value={sort}
+                            onChange={(e) => setSort(e.target.value as SortKey)}
+                            className="h-11 pl-4 pr-9 rounded-xl border border-zinc-200 bg-white text-sm font-semibold text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 appearance-none cursor-pointer transition"
+                        >
+                            <option value="newest">Newest first</option>
+                            <option value="oldest">Oldest first</option>
+                            <option value="budget_high">Budget: High → Low</option>
+                            <option value="budget_low">Budget: Low → High</option>
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 pointer-events-none" />
+                    </div>
+
+                    {/* View toggle */}
+                    <div className="flex items-center bg-zinc-100 rounded-xl p-1 gap-0.5">
+                        {([["grid", LayoutGrid], ["list", List]] as const).map(([mode, Icon]) => (
+                            <button
+                                key={mode}
+                                onClick={() => setView(mode)}
+                                className={`h-9 w-9 flex items-center justify-center rounded-lg transition-all ${
+                                    view === mode
+                                        ? "bg-blue-600 text-white shadow-sm"
+                                        : "text-zinc-400 hover:text-zinc-600 hover:bg-white/60"
+                                }`}
+                            >
+                                <Icon className="h-4 w-4" />
+                            </button>
+                        ))}
+                    </div>
                 </div>
             )}
 
