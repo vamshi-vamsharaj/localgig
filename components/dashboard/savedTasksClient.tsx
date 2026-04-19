@@ -18,19 +18,19 @@ import type { Task } from "@/lib/models/models.types";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ViewMode = "grid" | "list";
-type SortKey = "newest" | "oldest" | "budget_high" | "budget_low";
+type SortKey  = "newest" | "oldest" | "budget_high" | "budget_low";
 
 const CATEGORIES = ["All", "Moving", "Delivery", "Repair", "Tutoring", "Photography", "Cleaning"] as const;
 type Category = (typeof CATEGORIES)[number];
 
 const CATEGORY_COLORS: Record<string, string> = {
-    Moving: "bg-sky-50 text-sky-700",
-    Delivery: "bg-amber-50 text-amber-700",
-    Repair: "bg-rose-50 text-rose-700",
-    Tutoring: "bg-violet-50 text-violet-700",
+    Moving:      "bg-sky-50 text-sky-700",
+    Delivery:    "bg-amber-50 text-amber-700",
+    Repair:      "bg-rose-50 text-rose-700",
+    Tutoring:    "bg-violet-50 text-violet-700",
     Photography: "bg-pink-50 text-pink-700",
-    Cleaning: "bg-teal-50 text-teal-700",
-    General: "bg-zinc-100 text-zinc-600",
+    Cleaning:    "bg-teal-50 text-teal-700",
+    General:     "bg-zinc-100 text-zinc-600",
 };
 
 // ─── List Row ─────────────────────────────────────────────────────────────────
@@ -49,10 +49,10 @@ function SavedTaskRow({
     const categoryStyle = CATEGORY_COLORS[task.category ?? "General"] ?? CATEGORY_COLORS.General;
 
     const STATUS_DOT: Record<string, string> = {
-        open: "bg-emerald-400",
+        open:        "bg-emerald-400",
         in_progress: "bg-amber-400",
-        completed: "bg-blue-400",
-        cancelled: "bg-zinc-300",
+        completed:   "bg-blue-400",
+        cancelled:   "bg-zinc-300",
     };
 
     return (
@@ -86,10 +86,11 @@ function SavedTaskRow({
                 <button
                     onClick={() => onUnsave(task._id)}
                     disabled={isUnsaving}
-                    className={`h-9 w-9 flex items-center justify-center rounded-xl border transition-all ${isSaved
+                    className={`h-9 w-9 flex items-center justify-center rounded-xl border transition-all ${
+                        isSaved
                             ? "bg-blue-600 border-blue-600 text-white hover:bg-red-500 hover:border-red-500"
                             : "border-zinc-200 text-zinc-400 hover:border-blue-300 hover:text-blue-600"
-                        } disabled:opacity-50`}
+                    } disabled:opacity-50`}
                 >
                     <Bookmark className="h-4 w-4" fill={isSaved ? "currentColor" : "none"} />
                 </button>
@@ -147,16 +148,16 @@ interface Props {
 
 export default function SavedTasksClient({ initialTasks, initialSavedIds, userId }: Props) {
     // ── State ─────────────────────────────────────────────────────────────────
-    const [tasks, setTasks] = useState<Task[]>(initialTasks);
-    const [savedIds, setSavedIds] = useState<Set<string>>(new Set(initialSavedIds));
+    const [tasks, setTasks]           = useState<Task[]>(initialTasks);
+    const [savedIds, setSavedIds]     = useState<Set<string>>(new Set(initialSavedIds));
     const [unsavingIds, setUnsavingIds] = useState<Set<string>>(new Set());
-    const [search, setSearch] = useState("");
-    const [category, setCategory] = useState<Category>("All");
-    const [sort, setSort] = useState<SortKey>("newest");
-    const [view, setView] = useState<ViewMode>("grid");
+    const [search, setSearch]         = useState("");
+    const [category, setCategory]     = useState<Category>("All");
+    const [sort, setSort]             = useState<SortKey>("newest");
+    const [view, setView]             = useState<ViewMode>("grid");
     const [isPending, startTransition] = useTransition();
 
-// ── Unsave handler (optimistic) ───────────────────────────────────────────
+    // ── Unsave handler (optimistic) ───────────────────────────────────────────
     function handleUnsave(taskId: string) {
         if (unsavingIds.has(taskId)) return;
 
@@ -185,7 +186,7 @@ export default function SavedTasksClient({ initialTasks, initialSavedIds, userId
         });
     }
 
-// ── Filtering + sorting ───────────────────────────────────────────────────
+    // ── Filtering + sorting ───────────────────────────────────────────────────
     const filtered = useMemo(() => {
         let result = [...tasks];
 
@@ -217,7 +218,6 @@ export default function SavedTasksClient({ initialTasks, initialSavedIds, userId
     const hasFilters = search.trim() !== "" || category !== "All";
     function clearFilters() { setSearch(""); setCategory("All"); }
 
-
     // ── Render ────────────────────────────────────────────────────────────────
     return (
         <div className="space-y-7">
@@ -245,7 +245,7 @@ export default function SavedTasksClient({ initialTasks, initialSavedIds, userId
                 </Link>
             </div>
 
- {/* ── Toolbar ─────────────────────────────────────────────────── */}
+            {/* ── Toolbar ─────────────────────────────────────────────────── */}
             {tasks.length > 0 && (
                 <div className="flex items-center gap-3 flex-wrap">
 
@@ -319,7 +319,7 @@ export default function SavedTasksClient({ initialTasks, initialSavedIds, userId
                     </div>
                 </div>
             )}
-            
+
             {/* ── Active filter chips ──────────────────────────────────────── */}
             {hasFilters && (
                 <div className="flex items-center gap-2 flex-wrap">
@@ -355,6 +355,54 @@ export default function SavedTasksClient({ initialTasks, initialSavedIds, userId
                 <EmptyState hasFilters={hasFilters} onClear={clearFilters} />
             )}
 
+            {/* ── Grid ─────────────────────────────────────────────────────── */}
+            {filtered.length > 0 && view === "grid" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
+                    {filtered.map((task) => (
+                        <div
+                            key={task._id}
+                            className={`transition-all duration-300 ${
+                                unsavingIds.has(task._id) ? "opacity-40 scale-95 pointer-events-none" : "opacity-100 scale-100"
+                            }`}
+                        >
+                            <SavedTaskCard
+                                task={task}
+                                isSaved={savedIds.has(task._id)}
+                                isUnsaving={unsavingIds.has(task._id)}
+                                onUnsave={handleUnsave}
+                            />
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* ── List ─────────────────────────────────────────────────────── */}
+            {filtered.length > 0 && view === "list" && (
+                <div className="flex flex-col gap-3">
+                    {/* Column headers */}
+                    <div className="hidden md:flex items-center gap-5 px-6 py-2 text-xs font-bold uppercase tracking-widest text-zinc-400">
+                        <span className="w-3" />
+                        <span className="flex-1">Task</span>
+                        <span className="w-32 hidden sm:block">Budget</span>
+                        <span className="w-32">Actions</span>
+                    </div>
+                    {filtered.map((task) => (
+                        <div
+                            key={task._id}
+                            className={`transition-all duration-300 ${
+                                unsavingIds.has(task._id) ? "opacity-40 scale-[0.98] pointer-events-none" : "opacity-100 scale-100"
+                            }`}
+                        >
+                            <SavedTaskRow
+                                task={task}
+                                isSaved={savedIds.has(task._id)}
+                                isUnsaving={unsavingIds.has(task._id)}
+                                onUnsave={handleUnsave}
+                            />
+                        </div>
+                    ))}
+                </div>
+            )}
 
         </div>
     );
