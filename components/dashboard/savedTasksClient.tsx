@@ -319,6 +319,42 @@ export default function SavedTasksClient({ initialTasks, initialSavedIds, userId
                     </div>
                 </div>
             )}
+            
+            {/* ── Active filter chips ──────────────────────────────────────── */}
+            {hasFilters && (
+                <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm text-zinc-400 font-semibold">Active:</span>
+                    {search && (
+                        <span className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1 rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-200">
+                            "{search}"
+                            <button onClick={() => setSearch("")}><X className="h-3.5 w-3.5" /></button>
+                        </span>
+                    )}
+                    {category !== "All" && (
+                        <span className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1 rounded-full bg-blue-50 text-blue-700 ring-1 ring-blue-200">
+                            {category}
+                            <button onClick={() => setCategory("All")}><X className="h-3.5 w-3.5" /></button>
+                        </span>
+                    )}
+                    <button onClick={clearFilters} className="text-sm text-zinc-400 hover:text-red-500 font-semibold transition-colors">
+                        Clear all
+                    </button>
+                </div>
+            )}
+
+            {/* ── Results count ────────────────────────────────────────────── */}
+            {tasks.length > 0 && (
+                <p className="text-sm text-zinc-400 font-medium">
+                    Showing <span className="font-bold text-blue-600">{filtered.length}</span> of{" "}
+                    <span className="font-bold text-zinc-700">{tasks.length}</span> saved tasks
+                </p>
+            )}
+
+            {/* ── Empty state ──────────────────────────────────────────────── */}
+            {filtered.length === 0 && (
+                <EmptyState hasFilters={hasFilters} onClear={clearFilters} />
+            )}
+
 
         </div>
     );
