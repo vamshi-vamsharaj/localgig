@@ -98,3 +98,97 @@ export async function getClientApplications(
     return result;
 }
 
+export async function acceptApplication(
+    applicationId: string,
+    clientId: string
+): Promise<ActionResult<{ conversationId: string }>> {
+    await connectDB();
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+        const application = await Application.findById(applicationId)
+            .session(session)
+            .lean();
+
+        if (!application) {
+            await session.abortTransaction();
+            return { success: false, error: "Application not found" };
+        }
+
+        if (application.status !== "pending") {
+            await session.abortTransaction();
+            return { success: false, error: "Application is no longer pending" };
+        }
+
+        // Ownership check
+        const task = await Task.findById(application.taskId)
+            .select("clientId status")
+            .session(session)
+            .lean();
+
+        if (!task) {
+            await session.abortTransaction();
+            return { success: false, error: "Task not found" };
+        }
+
+        if (task.clientId.toString() !== clientId) {
+            await session.abortTransaction();
+            return { success: false, error: "Unauthorized" };
+        }
+
+        if (task.status !== "open") {
+            await session.abortTransaction();
+            return { success: false, error: "Task is no longer accepting applications" };
+        }
+
+        // 1. Accept this application
+        await Application.findByIdAndUpdate(
+            applicationId,
+            { status: "accepted" },
+            { session }
+        );
+
+        // 2. Reject all other pending applications for this task
+        await Application.updateMany(
+            { taskId: application.taskId, _id: { $ne: applicationId }, status: "pending" },
+            { status: "rejected" },
+            { session }
+        );
+
+        // 3. Update task — assign worker + mark in_progress
+        await Task.findByIdAndUpdate(
+            application.taskId,
+            { status: "in_progress", assignedWorkerId: application.workerId },
+            { session }
+        );
+
+        // 4. Get or create a conversation between client and worker
+        let conversation = await Conversation.findOne({
+            taskId:   application.taskId,
+            clientId,
+            workerId: application.workerId,
+        }).session(session);
+
+        if (!conversation) {
+            [conversation] = await Conversation.create(
+                [{ taskId: application.taskId, clientId, workerId: application.workerId }],
+                { session }
+            );
+        }
+
+        await session.commitTransaction();
+
+        return {
+            success: true,
+            data: { conversationId: conversation._id.toString() },
+        };
+    } catch (err) {
+        await session.abortTransaction();
+        console.error("[acceptApplication]", err);
+        return { success: false, error: "Failed to accept application" };
+    } finally {
+        session.endSession();
+    }
+}
