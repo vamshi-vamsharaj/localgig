@@ -192,3 +192,31 @@ export async function acceptApplication(
         session.endSession();
     }
 }
+
+
+export async function rejectApplication(
+    applicationId: string,
+    clientId: string
+): Promise<ActionResult> {
+    try {
+        await connectDB();
+
+        const application = await Application.findById(applicationId)
+  .populate("taskId", "clientId status")
+  .lean();
+
+        if (!application) return { success: false, error: "Application not found" };
+        if (application.taskId?.clientId?.toString() !== clientId) {
+            return { success: false, error: "Unauthorized" };
+        }
+        if (application.status !== "pending") {
+            return { success: false, error: "Application is no longer pending" };
+        }
+
+        await Application.findByIdAndUpdate(applicationId, { status: "rejected" });
+
+        return { success: true, data: undefined };
+    } catch {
+        return { success: false, error: "Failed to reject application" };
+    }
+}
