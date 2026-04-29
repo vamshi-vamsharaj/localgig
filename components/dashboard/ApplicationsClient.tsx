@@ -41,9 +41,12 @@ function TaskGroup({ task, clientId, activeTab, search }: {
     search: string;
 }) {
     const [collapsed, setCollapsed] = useState(false);
+    // localApps drives all per-task state — status changes here immediately reflect
+    // in count badges, taskHasAccepted guard, and each ApplicationCard's disabled state
     const [localApps, setLocalApps] = useState(task.applications);
 
     const taskStatus = TASK_STATUS_CONFIG[task.status] ?? TASK_STATUS_CONFIG.open;
+    // Derived from localApps so it reacts instantly after an accept action
     const taskHasAccepted = localApps.some((a) => a.status === "accepted");
 
     const visibleApps = useMemo(() => {
@@ -62,9 +65,18 @@ function TaskGroup({ task, clientId, activeTab, search }: {
 
     if (visibleApps.length === 0) return null;
 
-    function handleStatusChange(applicationId: string, newStatus: "accepted" | "rejected") {
+    // Receives the new status (and optional conversationId for accepted) from ApplicationCard
+    function handleStatusChange(
+        applicationId: string,
+        newStatus: "accepted" | "rejected",
+        conversationId?: string,
+    ) {
         setLocalApps((prev) =>
-            prev.map((a) => a.applicationId === applicationId ? { ...a, status: newStatus } : a)
+            prev.map((a) =>
+                a.applicationId === applicationId
+                    ? { ...a, status: newStatus, ...(conversationId ? { conversationId } : {}) }
+                    : a
+            )
         );
     }
 
@@ -77,7 +89,6 @@ function TaskGroup({ task, clientId, activeTab, search }: {
     return (
         <div className="bg-white rounded-2xl border border-zinc-100 shadow-sm overflow-hidden">
 
-            {/* ── Task header ── */}
             <button
                 onClick={() => setCollapsed((c) => !c)}
                 className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left hover:bg-zinc-50/60 transition-colors"
@@ -124,7 +135,6 @@ function TaskGroup({ task, clientId, activeTab, search }: {
                 </div>
             </button>
 
-            {/* ── Application cards grid ── */}
             {!collapsed && (
                 <div className="px-6 pb-6 border-t border-zinc-50">
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 pt-5">
@@ -134,6 +144,7 @@ function TaskGroup({ task, clientId, activeTab, search }: {
                                 application={app}
                                 clientId={clientId}
                                 taskBudget={task.budget}
+                                // Only block pending cards — not the already-accepted one
                                 taskAccepted={taskHasAccepted && app.status === "pending"}
                                 onStatusChange={handleStatusChange}
                             />
@@ -148,12 +159,8 @@ function TaskGroup({ task, clientId, activeTab, search }: {
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 
 function StatCard({ label, value, icon: Icon, active, onClick, colorClass }: {
-    label: string;
-    value: number;
-    icon: React.ElementType;
-    active: boolean;
-    onClick: () => void;
-    colorClass: string;
+    label: string; value: number; icon: React.ElementType;
+    active: boolean; onClick: () => void; colorClass: string;
 }) {
     return (
         <button
@@ -214,7 +221,6 @@ export default function ApplicationsClient({ tasks, clientId }: Props) {
     return (
         <div className="space-y-7">
 
-            {/* ── Header ── */}
             <div>
                 <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Applications</h1>
                 <p className="text-base text-zinc-400 mt-1 font-medium">
@@ -222,7 +228,6 @@ export default function ApplicationsClient({ tasks, clientId }: Props) {
                 </p>
             </div>
 
-            {/* ── Stat Cards ── */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <StatCard label="Total"    value={counts.all}      icon={Briefcase}    active={activeTab === "all"}      onClick={() => setActiveTab("all")}      colorClass="bg-blue-600" />
                 <StatCard label="Pending"  value={counts.pending}  icon={Hourglass}    active={activeTab === "pending"}  onClick={() => setActiveTab("pending")}  colorClass="bg-amber-500" />
@@ -230,7 +235,6 @@ export default function ApplicationsClient({ tasks, clientId }: Props) {
                 <StatCard label="Rejected" value={counts.rejected} icon={XCircle}      active={activeTab === "rejected"} onClick={() => setActiveTab("rejected")} colorClass="bg-red-500" />
             </div>
 
-            {/* ── Search + Tab Pills ── */}
             <div className="flex items-center gap-3">
                 <div className="relative flex-1">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-300" />
@@ -247,7 +251,6 @@ export default function ApplicationsClient({ tasks, clientId }: Props) {
                         </button>
                     )}
                 </div>
-
                 <div className="flex items-center bg-zinc-100 rounded-xl p-1 gap-0.5">
                     {TAB_CONFIG.map(({ value, label, icon: Icon, activeBg }) => (
                         <button
@@ -277,7 +280,6 @@ export default function ApplicationsClient({ tasks, clientId }: Props) {
                 task{visibleTasks.length !== 1 ? "s" : ""}
             </p>
 
-            {/* ── Task groups / empty state ── */}
             {visibleTasks.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-28 text-center bg-white rounded-2xl border border-dashed border-zinc-200">
                     <div className="h-14 w-14 rounded-2xl bg-zinc-50 flex items-center justify-center mb-5">
@@ -285,11 +287,7 @@ export default function ApplicationsClient({ tasks, clientId }: Props) {
                     </div>
                     <p className="text-lg font-bold text-zinc-800">No applications found</p>
                     <p className="text-sm text-zinc-400 mt-1.5 font-medium">
-                        {search
-                            ? "Try a different search term"
-                            : activeTab !== "all"
-                            ? `No ${activeTab} applications yet`
-                            : "Workers haven't applied to your tasks yet"}
+                        {search ? "Try a different search term" : activeTab !== "all" ? `No ${activeTab} applications yet` : "Workers haven't applied to your tasks yet"}
                     </p>
                     {(search || activeTab !== "all") && (
                         <button
