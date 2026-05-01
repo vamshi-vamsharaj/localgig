@@ -1,6 +1,7 @@
 "use client";
 
-import { MessageSquare } from "lucide-react";
+import { useState } from "react";
+import { Search, MessageSquare, X } from "lucide-react";
 
 export interface ConversationSummary {
     _id: string;
@@ -54,27 +55,64 @@ export default function ConversationList({
     userId,
     onSelect,
 }: ConversationListProps) {
+    const [search, setSearch] = useState("");
+
+    const filtered = conversations.filter((c) => {
+        if (!search.trim()) return true;
+        const q = search.toLowerCase();
+        const other = c.role === "client" ? c.worker : c.client;
+        return (
+            other.name.toLowerCase().includes(q) ||
+            (c.taskTitle ?? "").toLowerCase().includes(q) ||
+            (c.lastMessage ?? "").toLowerCase().includes(q)
+        );
+    });
+
     return (
         <div className="flex flex-col h-full bg-white border-r border-zinc-100">
 
             {/* ── Header ── */}
             <div className="px-5 pt-6 pb-4 border-b border-zinc-100">
-                <h2 className="text-xl font-bold text-zinc-900 tracking-tight">Messages</h2>
+                <h2 className="text-xl font-bold text-zinc-900 tracking-tight mb-4">Messages</h2>
+
+                {/* Search */}
+                <div className="relative">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-300" />
+                    <input
+                        type="text"
+                        placeholder="Search conversations..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full h-10 pl-10 pr-9 rounded-xl border border-zinc-200 bg-zinc-50 text-sm text-zinc-700 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 focus:bg-white transition"
+                    />
+                    {search && (
+                        <button
+                            onClick={() => setSearch("")}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-zinc-500 transition"
+                        >
+                            <X className="h-3.5 w-3.5" />
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* ── List ── */}
             <div className="flex-1 overflow-y-auto">
-                {conversations.length === 0 ? (
+                {filtered.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
                         <div className="h-12 w-12 rounded-2xl bg-zinc-50 flex items-center justify-center mb-3">
                             <MessageSquare className="h-5 w-5 text-zinc-300" />
                         </div>
-                        <p className="text-sm font-semibold text-zinc-500">No messages yet</p>
-                        <p className="text-xs text-zinc-400 mt-1">Accept an application to start chatting</p>
+                        <p className="text-sm font-semibold text-zinc-500">
+                            {search ? "No conversations found" : "No messages yet"}
+                        </p>
+                        <p className="text-xs text-zinc-400 mt-1">
+                            {search ? "Try a different search" : "Accept an application to start chatting"}
+                        </p>
                     </div>
                 ) : (
                     <ul className="py-2">
-                        {conversations.map((conv) => {
+                        {filtered.map((conv) => {
                             const other = conv.role === "client" ? conv.worker : conv.client;
                             const statusDot = TASK_STATUS_DOT[conv.taskStatus] ?? "bg-zinc-300";
 
@@ -92,7 +130,6 @@ export default function ConversationList({
                                                     : getInitials(other.name)
                                                 }
                                             </div>
-                                            {/* Task status dot */}
                                             <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white ${statusDot}`} />
                                         </div>
 
