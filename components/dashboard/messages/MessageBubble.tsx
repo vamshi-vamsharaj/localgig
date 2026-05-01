@@ -1,10 +1,15 @@
-// components/dashboard/messages/MessageBubble.tsx
 "use client";
+
+import { Check, CheckCheck } from "lucide-react";
 
 interface MessageBubbleProps {
     content: string;
     isMine: boolean;
     createdAt: string;
+    status: "sent" | "delivered" | "read";
+    showAvatar?: boolean;
+    senderName?: string;
+    senderInitials?: string;
 }
 
 function formatTime(iso: string) {
@@ -15,13 +20,32 @@ function formatTime(iso: string) {
     });
 }
 
+function ReadIcon({ status }: { status: "sent" | "delivered" | "read" }) {
+    if (status === "read") return <CheckCheck className="h-3 w-3 text-blue-400" />;
+    if (status === "delivered") return <CheckCheck className="h-3 w-3 text-zinc-400" />;
+    return <Check className="h-3 w-3 text-zinc-400" />;
+}
+
 export default function MessageBubble({
     content,
     isMine,
     createdAt,
+    status,
+    showAvatar,
+    senderName,
+    senderInitials,
 }: MessageBubbleProps) {
     return (
         <div className={`flex items-end gap-2 ${isMine ? "flex-row-reverse" : "flex-row"}`}>
+
+            {/* Avatar — shown for other user only */}
+            <div className="shrink-0 w-7">
+                {!isMine && showAvatar && (
+                    <div className="h-7 w-7 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600">
+                        {senderInitials ?? senderName?.[0]?.toUpperCase() ?? "?"}
+                    </div>
+                )}
+            </div>
 
             {/* Bubble */}
             <div className={`flex flex-col gap-1 max-w-[70%] ${isMine ? "items-end" : "items-start"}`}>
@@ -37,10 +61,13 @@ export default function MessageBubble({
                     {content}
                 </div>
 
-                {/* Timestamp */}
-                <span className={`text-[10px] text-zinc-400 font-medium px-1`}>
-                    {formatTime(createdAt)}
-                </span>
+                {/* Timestamp + read receipt */}
+                <div className={`flex items-center gap-1 px-1 ${isMine ? "flex-row-reverse" : "flex-row"}`}>
+                    <span className="text-[10px] text-zinc-400 font-medium">
+                        {formatTime(createdAt)}
+                    </span>
+                    {isMine && <ReadIcon status={status} />}
+                </div>
             </div>
         </div>
     );
