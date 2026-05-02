@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Briefcase, Loader2, MessageSquare, MoreHorizontal } from "lucide-react";
-import { getMessages, markMessagesRead } from "@/lib/actions/messages";
+import { getMessages, sendMessage, markMessagesRead } from "@/lib/actions/messages";
 import MessageBubble, { DateDivider } from "@/components/dashboard/messages/MessageBubble";
 import ChatInput from "@/components/dashboard/messages/ChatInput";
 import type { ConversationSummary } from "./ConversationList";
@@ -74,8 +74,10 @@ interface ChatWindowProps {
 export default function ChatWindow({ conversation, userId }: ChatWindowProps) {
     const [messages, setMessages] = useState<MessageItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const bottomRef = useRef<HTMLDivElement>(null);
 
     const other = conversation.role === "client" ? conversation.worker : conversation.client;
+    const receiverId = other._id;
     const taskStatusCfg = TASK_STATUS_CONFIG[conversation.taskStatus] ?? TASK_STATUS_CONFIG.open;
 
     // ── Load messages ──────────────────────────────────────────────────────────
@@ -84,8 +86,6 @@ export default function ChatWindow({ conversation, userId }: ChatWindowProps) {
         const data = await getMessages(conversation._id, userId);
         setMessages(data as MessageItem[]);
         setLoading(false);
-
-        // Mark as read after loading
         await markMessagesRead(conversation._id, userId);
     }, [conversation._id, userId]);
 
@@ -93,8 +93,45 @@ export default function ChatWindow({ conversation, userId }: ChatWindowProps) {
         loadMessages();
     }, [loadMessages]);
 
+    // ── Send message ──────────────────────────────────────────────────────────
     async function handleSend(content: string) {
-        // wired up in next commit
+        // Optimistic: add message instantly before server responds
+        const optimistic: MessageItem = {
+            _id:            `optimistic-${Date.now()}`,
+            conversationId: conversation._id,
+            senderId:       userId,
+            receiverId,
+            taskId:         conversation.taskId,
+            content,
+            status:         "sent",
+            isMine:         true,
+            createdAt:      new Date().toISOString(),
+            isOptimistic:   true,
+        };
+
+        setMessages((prev) => [...prev, optimistic]);
+
+        const result = await sendMessage(
+            conversation._id,
+            conversation.taskId,
+            userId,
+            receiverId,
+            content
+        );
+
+        if (result.success) {
+            // Replace optimistic entry with confirmed message ID
+            setMessages((prev) =>
+                prev.map((m) =>
+                    m._id === optimistic._id
+                        ? { ...m, _id: result.data.messageId, isOptimistic: false }
+                        : m
+                )
+            );
+        } else {
+            // Roll back on failure
+            setMessages((prev) => prev.filter((m) => m._id !== optimistic._id));
+        }
     }
 
     return (
@@ -160,6 +197,7 @@ export default function ChatWindow({ conversation, userId }: ChatWindowProps) {
                                 />
                             </div>
                         ))}
+                        <div ref={bottomRef} />
                     </>
                 )}
             </div>
