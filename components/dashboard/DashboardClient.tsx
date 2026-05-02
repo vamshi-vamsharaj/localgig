@@ -47,6 +47,8 @@ const APP_STATUS: Record<string, { label: string; badge: string }> = {
     rejected: { label: "Rejected", badge: "bg-red-50 text-red-600 ring-red-200" },
 };
 
+// ─── Stat Card ────────────────────────────────────────────────────────────────
+
 function StatCard({
     icon: Icon, label, value, sub, href, accent,
 }: {
@@ -206,6 +208,7 @@ export default function DashboardClient({ data, userName }: DashboardClientProps
     return (
         <div className="space-y-4 sm:space-y-6">
 
+            {/* ── Header ──────────────────────────────────────────────────── */}
             <div>
                 <p className="text-xs font-medium text-zinc-400 mb-0.5">{today}</p>
                 <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 tracking-tight">
@@ -216,6 +219,7 @@ export default function DashboardClient({ data, userName }: DashboardClientProps
                 </p>
             </div>
 
+            {/* ── Tasks Posted — Stat Cards ────────────────────────────────── */}
             <div>
                 <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2 px-0.5">
                     Tasks Posted
@@ -256,6 +260,7 @@ export default function DashboardClient({ data, userName }: DashboardClientProps
                 </div>
             </div>
 
+            {/* ── Tasks Applied To — Stat Cards ───────────────────────────── */}
             <div>
                 <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2 px-0.5">
                     Tasks Applied To
@@ -296,6 +301,7 @@ export default function DashboardClient({ data, userName }: DashboardClientProps
                 </div>
             </div>
 
+            {/* ── Split: Recent Tasks + Recent Applications ────────────────── */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                 <div className="bg-white rounded-xl border border-zinc-100 shadow-sm">
                     <div className="px-3 sm:px-4 pt-4 pb-3 border-b border-zinc-50">
@@ -313,6 +319,24 @@ export default function DashboardClient({ data, userName }: DashboardClientProps
                         <RecentApplications applications={recentApplications} />
                     </div>
                 </div>
+            </div>
+
+            {/* ── Summary row ──────────────────────────────────────────────── */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+                {[
+                    { label: "Open Tasks",      value: recentTasks.filter(t => t.status === "open").length, icon: Clock,        color: "text-emerald-600" },
+                    { label: "In Progress",     value: stats.activeTasks,                                    icon: Zap,          color: "text-blue-600" },
+                    { label: "Completed",       value: stats.completedTasks,                                 icon: CheckCircle2, color: "text-zinc-500" },
+                    { label: "Pending Reviews", value: stats.pendingApplications,                            icon: Users,        color: "text-amber-600" },
+                ].map(({ label, value, icon: Icon, color }) => (
+                    <div key={label} className="flex items-center gap-2 bg-white rounded-xl border border-zinc-100 px-3 sm:px-3.5 py-3 shadow-sm">
+                        <Icon className={`h-4 w-4 shrink-0 ${color}`} />
+                        <div className="min-w-0">
+                            <p className="text-base sm:text-lg font-bold text-zinc-900 tabular-nums leading-none">{value}</p>
+                            <p className="text-[10px] sm:text-[11px] text-zinc-400 font-medium mt-0.5 truncate">{label}</p>
+                        </div>
+                    </div>
+                ))}
             </div>
 
         </div>
