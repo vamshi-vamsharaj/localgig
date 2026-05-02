@@ -7,6 +7,10 @@ import {
     Users,
     MessageSquare,
     ChevronRight,
+    Send,
+    Hourglass,
+    ThumbsUp,
+    XCircle,
 } from "lucide-react";
 import type { DashboardData } from "@/lib/actions/dashboard";
 
@@ -106,6 +110,46 @@ export default function DashboardClient({ data, userName }: DashboardClientProps
                         sub="across all chats"
                         href="/dashboard/messages"
                         accent="bg-teal-50 text-teal-600"
+                    />
+                </div>
+            </div>
+
+            <div>
+                <p className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider mb-2 px-0.5">
+                    Tasks Applied To
+                </p>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+                    <StatCard
+                        icon={Send}
+                        label="Total Applied"
+                        value={stats.totalApplied}
+                        sub="all time"
+                        href="/dashboard/applied"
+                        accent="bg-indigo-50 text-indigo-600"
+                    />
+                    <StatCard
+                        icon={Hourglass}
+                        label="Awaiting Response"
+                        value={stats.appliedPending}
+                        sub="pending review"
+                        href="/dashboard/applied"
+                        accent="bg-amber-50 text-amber-600"
+                    />
+                    <StatCard
+                        icon={ThumbsUp}
+                        label="Accepted"
+                        value={stats.appliedAccepted}
+                        sub="offers received"
+                        href="/dashboard/applied"
+                        accent="bg-emerald-50 text-emerald-600"
+                    />
+                    <StatCard
+                        icon={XCircle}
+                        label="Rejected"
+                        value={stats.appliedRejected}
+                        sub="not selected"
+                        href="/dashboard/applied"
+                        accent="bg-red-50 text-red-500"
                     />
                 </div>
             </div>
