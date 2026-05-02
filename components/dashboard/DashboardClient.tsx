@@ -11,8 +11,19 @@ import {
     Hourglass,
     ThumbsUp,
     XCircle,
+    IndianRupee,
+    ArrowUpRight,
 } from "lucide-react";
 import type { DashboardData } from "@/lib/actions/dashboard";
+
+function timeAgo(iso: string) {
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+}
 
 function greeting() {
     const h = new Date().getHours();
@@ -20,6 +31,13 @@ function greeting() {
     if (h < 17) return "Good afternoon";
     return "Good evening";
 }
+
+const TASK_STATUS: Record<string, { label: string; dot: string; text: string }> = {
+    open:        { label: "Open",        dot: "bg-emerald-400", text: "text-emerald-700" },
+    in_progress: { label: "In Progress", dot: "bg-blue-400",    text: "text-blue-700" },
+    completed:   { label: "Completed",   dot: "bg-zinc-300",    text: "text-zinc-500" },
+    cancelled:   { label: "Cancelled",   dot: "bg-red-300",     text: "text-red-500" },
+};
 
 function StatCard({
     icon: Icon, label, value, sub, href, accent,
@@ -49,13 +67,78 @@ function StatCard({
     );
 }
 
+function SectionHeader({ title, href, linkLabel }: { title: string; href: string; linkLabel: string }) {
+    return (
+        <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-bold text-zinc-700">{title}</h2>
+            <Link
+                href={href}
+                className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-0.5 transition-colors"
+            >
+                {linkLabel} <ArrowUpRight className="h-3 w-3" />
+            </Link>
+        </div>
+    );
+}
+
+function RecentTasks({ tasks }: { tasks: DashboardData["recentTasks"] }) {
+    if (tasks.length === 0) {
+        return (
+            <div className="flex items-center justify-center py-10 text-center">
+                <div>
+                    <ClipboardList className="h-7 w-7 text-zinc-200 mx-auto mb-2" />
+                    <p className="text-xs text-zinc-400 font-medium">No tasks yet</p>
+                    <Link href="/tasks/new" className="text-xs text-blue-600 hover:underline mt-1 inline-block">
+                        Post your first task →
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <ul className="space-y-1">
+            {tasks.map((task) => {
+                const s = TASK_STATUS[task.status] ?? TASK_STATUS.open;
+                return (
+                    <li key={task._id}>
+                        <Link
+                            href={`/tasks/${task._id}`}
+                            className="flex items-center gap-2.5 px-2.5 sm:px-3.5 py-2.5 rounded-lg hover:bg-zinc-50 transition-colors group"
+                        >
+                            <span className={`h-2 w-2 rounded-full shrink-0 ${s.dot}`} />
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-zinc-800 truncate group-hover:text-blue-600 transition-colors">
+                                    {task.title}
+                                </p>
+                                <p className="text-xs text-zinc-400 font-medium mt-0.5">{task.category}</p>
+                            </div>
+                            <div className="hidden sm:flex items-center gap-0.5 text-sm font-bold text-zinc-700 shrink-0 tabular-nums">
+                                <IndianRupee className="h-3 w-3 text-zinc-400" />
+                                {task.budget.toLocaleString("en-IN")}
+                            </div>
+                            <div className="flex items-center gap-1 text-xs text-zinc-400 shrink-0">
+                                <Users className="h-3 w-3" />
+                                {task.applicantsCount}
+                            </div>
+                            <span className="hidden md:block text-[11px] text-zinc-400 shrink-0 w-14 text-right font-medium">
+                                {timeAgo(task.createdAt)}
+                            </span>
+                        </Link>
+                    </li>
+                );
+            })}
+        </ul>
+    );
+}
+
 interface DashboardClientProps {
     data: DashboardData;
     userName: string;
 }
 
 export default function DashboardClient({ data, userName }: DashboardClientProps) {
-    const { stats } = data;
+    const { stats, recentTasks } = data;
 
     const today = new Date().toLocaleDateString("en-IN", {
         weekday: "long", month: "long", day: "numeric",
@@ -151,6 +234,17 @@ export default function DashboardClient({ data, userName }: DashboardClientProps
                         href="/dashboard/applied"
                         accent="bg-red-50 text-red-500"
                     />
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+                <div className="bg-white rounded-xl border border-zinc-100 shadow-sm">
+                    <div className="px-3 sm:px-4 pt-4 pb-3 border-b border-zinc-50">
+                        <SectionHeader title="Recent Tasks" href="/dashboard/posted" linkLabel="View all" />
+                    </div>
+                    <div className="px-1 sm:px-2 py-2">
+                        <RecentTasks tasks={recentTasks} />
+                    </div>
                 </div>
             </div>
 
