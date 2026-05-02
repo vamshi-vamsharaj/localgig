@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Briefcase, Loader2, MessageSquare, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Briefcase, Loader2, MessageSquare, MoreHorizontal } from "lucide-react";
 import { getMessages, sendMessage, markMessagesRead } from "@/lib/actions/messages";
 import MessageBubble, { DateDivider } from "@/components/dashboard/messages/MessageBubble";
 import ChatInput from "@/components/dashboard/messages/ChatInput";
@@ -69,9 +69,10 @@ export function EmptyChat() {
 interface ChatWindowProps {
     conversation: ConversationSummary;
     userId: string;
+    onBack?: () => void; // for mobile
 }
 
-export default function ChatWindow({ conversation, userId }: ChatWindowProps) {
+export default function ChatWindow({ conversation, userId, onBack }: ChatWindowProps) {
     const [messages, setMessages] = useState<MessageItem[]>([]);
     const [loading, setLoading] = useState(true);
     const bottomRef = useRef<HTMLDivElement>(null);
@@ -80,12 +81,14 @@ export default function ChatWindow({ conversation, userId }: ChatWindowProps) {
     const receiverId = other._id;
     const taskStatusCfg = TASK_STATUS_CONFIG[conversation.taskStatus] ?? TASK_STATUS_CONFIG.open;
 
-    // ── Load messages ──────────────────────────────────────────────────────────
+    // ── Load messages ─────────────────────────────────────────────────────────
     const loadMessages = useCallback(async () => {
         setLoading(true);
         const data = await getMessages(conversation._id, userId);
         setMessages(data as MessageItem[]);
         setLoading(false);
+
+        // Mark as read
         await markMessagesRead(conversation._id, userId);
     }, [conversation._id, userId]);
 
@@ -93,9 +96,16 @@ export default function ChatWindow({ conversation, userId }: ChatWindowProps) {
         loadMessages();
     }, [loadMessages]);
 
+    // ── Auto-scroll to bottom ─────────────────────────────────────────────────
+    useEffect(() => {
+        if (!loading) {
+            bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [messages, loading]);
+
     // ── Send message ──────────────────────────────────────────────────────────
     async function handleSend(content: string) {
-        // Optimistic: add message instantly before server responds
+        // Optimistic: add message instantly
         const optimistic: MessageItem = {
             _id:            `optimistic-${Date.now()}`,
             conversationId: conversation._id,
@@ -110,6 +120,7 @@ export default function ChatWindow({ conversation, userId }: ChatWindowProps) {
         };
 
         setMessages((prev) => [...prev, optimistic]);
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
 
         const result = await sendMessage(
             conversation._id,
@@ -120,7 +131,7 @@ export default function ChatWindow({ conversation, userId }: ChatWindowProps) {
         );
 
         if (result.success) {
-            // Replace optimistic entry with confirmed message ID
+            // Replace optimistic with real message ID
             setMessages((prev) =>
                 prev.map((m) =>
                     m._id === optimistic._id
@@ -129,7 +140,7 @@ export default function ChatWindow({ conversation, userId }: ChatWindowProps) {
                 )
             );
         } else {
-            // Roll back on failure
+            // Remove failed optimistic message
             setMessages((prev) => prev.filter((m) => m._id !== optimistic._id));
         }
     }
@@ -137,14 +148,27 @@ export default function ChatWindow({ conversation, userId }: ChatWindowProps) {
     return (
         <div className="flex flex-col h-full bg-white">
 
-            {/* ── Chat header ── */}
+            {/* ── Chat header ─────────────────────────────────────────────── */}
             <div className="flex items-center gap-4 px-5 py-4 border-b border-zinc-100 bg-white shrink-0">
+                {/* Mobile back button */}
+                {onBack && (
+                    <button
+                        onClick={onBack}
+                        className="md:hidden h-8 w-8 flex items-center justify-center rounded-xl border border-zinc-200 text-zinc-400 hover:text-zinc-700 transition"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                    </button>
+                )}
+
+                {/* Avatar */}
                 <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-600 shrink-0 overflow-hidden">
                     {other.avatar
                         ? <img src={other.avatar} alt={other.name} className="h-full w-full object-cover" />
                         : getInitials(other.name)
                     }
                 </div>
+
+                {/* Name + task */}
                 <div className="flex-1 min-w-0">
                     <p className="text-base font-bold text-zinc-900 leading-tight truncate">{other.name}</p>
                     <div className="flex items-center gap-2 mt-0.5">
@@ -155,12 +179,13 @@ export default function ChatWindow({ conversation, userId }: ChatWindowProps) {
                         </span>
                     </div>
                 </div>
+
                 <button className="h-8 w-8 flex items-center justify-center rounded-xl border border-zinc-200 text-zinc-400 hover:text-zinc-700 hover:border-zinc-300 transition shrink-0">
                     <MoreHorizontal className="h-4 w-4" />
                 </button>
             </div>
 
-            {/* ── Messages area ── */}
+            {/* ── Messages area ────────────────────────────────────────────── */}
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-1.5 bg-zinc-50/30">
                 {loading ? (
                     <div className="flex items-center justify-center h-full">
@@ -186,15 +211,17 @@ export default function ChatWindow({ conversation, userId }: ChatWindowProps) {
                                 {shouldShowDateDivider(msg, messages[i - 1]) && (
                                     <DateDivider iso={msg.createdAt} />
                                 )}
-                                <MessageBubble
-                                    content={msg.content}
-                                    isMine={msg.isMine}
-                                    createdAt={msg.createdAt}
-                                    status={msg.status}
-                                    showAvatar={shouldShowAvatar(messages, i)}
-                                    senderName={other.name}
-                                    senderInitials={getInitials(other.name)}
-                                />
+                                <div className={`transition-opacity duration-200 ${msg.isOptimistic ? "opacity-70" : "opacity-100"}`}>
+                                    <MessageBubble
+                                        content={msg.content}
+                                        isMine={msg.isMine}
+                                        createdAt={msg.createdAt}
+                                        status={msg.status}
+                                        showAvatar={shouldShowAvatar(messages, i)}
+                                        senderName={other.name}
+                                        senderInitials={getInitials(other.name)}
+                                    />
+                                </div>
                             </div>
                         ))}
                         <div ref={bottomRef} />
@@ -202,7 +229,7 @@ export default function ChatWindow({ conversation, userId }: ChatWindowProps) {
                 )}
             </div>
 
-            {/* ── Input ── */}
+            {/* ── Input ───────────────────────────────────────────────────── */}
             <ChatInput onSend={handleSend} disabled={loading} />
         </div>
     );
