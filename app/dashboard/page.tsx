@@ -1,24 +1,17 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/auth";
-import {
-    getDashboardStats,
-} from "@/lib/actions/dashboard-stats";
-
-import DashboardStats from "@/components/dashboard/dashboard-stats";
+import { getDashboardData } from "@/lib/actions/dashboard";
+import DashboardClient from "@/components/dashboard/DashboardClient";
 
 export default async function DashboardPage() {
     const session = await getSession();
-    if (!session?.user) redirect("/login");
+    if (!session?.user) redirect("/sign-in");
 
-    const userId = (session.user as { id: string }).id;
+    const userId = (session.user as { id: string; name?: string }).id;
+    const userName = (session.user as { id: string; name?: string }).name ?? "there";
 
-    const [stats] = await Promise.all([
-        getDashboardStats(userId),
-    ]);
+    const data = await getDashboardData(userId);
 
-    return (
-        <div className="space-y-6 max-w-[1200px] mx-auto">
-            <DashboardStats stats={stats} />
-        </div>
-    );
+    return <DashboardClient data={data} userName={userName} />;
 }
+
