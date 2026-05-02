@@ -6,13 +6,15 @@ import {
     Zap,
     Users,
     MessageSquare,
+    CheckCircle2,
+    Clock,
+    ArrowUpRight,
+    IndianRupee,
     ChevronRight,
     Send,
     Hourglass,
     ThumbsUp,
     XCircle,
-    IndianRupee,
-    ArrowUpRight,
 } from "lucide-react";
 import type { DashboardData } from "@/lib/actions/dashboard";
 
@@ -37,6 +39,12 @@ const TASK_STATUS: Record<string, { label: string; dot: string; text: string }> 
     in_progress: { label: "In Progress", dot: "bg-blue-400",    text: "text-blue-700" },
     completed:   { label: "Completed",   dot: "bg-zinc-300",    text: "text-zinc-500" },
     cancelled:   { label: "Cancelled",   dot: "bg-red-300",     text: "text-red-500" },
+};
+
+const APP_STATUS: Record<string, { label: string; badge: string }> = {
+    pending:  { label: "Pending",  badge: "bg-amber-50 text-amber-700 ring-amber-200" },
+    accepted: { label: "Accepted", badge: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
+    rejected: { label: "Rejected", badge: "bg-red-50 text-red-600 ring-red-200" },
 };
 
 function StatCard({
@@ -132,13 +140,64 @@ function RecentTasks({ tasks }: { tasks: DashboardData["recentTasks"] }) {
     );
 }
 
+function RecentApplications({ applications }: { applications: DashboardData["recentApplications"] }) {
+    if (applications.length === 0) {
+        return (
+            <div className="flex items-center justify-center py-10 text-center">
+                <div>
+                    <Users className="h-7 w-7 text-zinc-200 mx-auto mb-2" />
+                    <p className="text-xs text-zinc-400 font-medium">No applications yet</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <ul className="space-y-1">
+            {applications.map((app) => {
+                const s = APP_STATUS[app.status] ?? APP_STATUS.pending;
+                return (
+                    <li key={app.applicationId}>
+                        <Link
+                            href="/dashboard/applicants"
+                            className="flex items-center gap-2.5 px-2.5 sm:px-3.5 py-2.5 rounded-lg hover:bg-zinc-50 transition-colors group"
+                        >
+                            <div className="h-7 w-7 rounded-full bg-zinc-100 flex items-center justify-center text-[11px] font-bold text-zinc-500 shrink-0">
+                                {app.workerName[0]?.toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-zinc-800 truncate group-hover:text-blue-600 transition-colors">
+                                    {app.workerName}
+                                </p>
+                                <p className="text-xs text-zinc-400 font-medium truncate mt-0.5">{app.taskTitle}</p>
+                            </div>
+                            {app.proposedBudget && (
+                                <div className="hidden sm:flex items-center gap-0.5 text-sm font-bold text-zinc-700 shrink-0 tabular-nums">
+                                    <IndianRupee className="h-3 w-3 text-zinc-400" />
+                                    {app.proposedBudget.toLocaleString("en-IN")}
+                                </div>
+                            )}
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ring-1 shrink-0 ${s.badge}`}>
+                                {s.label}
+                            </span>
+                            <span className="hidden md:block text-[11px] text-zinc-400 shrink-0 w-14 text-right font-medium">
+                                {timeAgo(app.appliedAt)}
+                            </span>
+                        </Link>
+                    </li>
+                );
+            })}
+        </ul>
+    );
+}
+
 interface DashboardClientProps {
     data: DashboardData;
     userName: string;
 }
 
 export default function DashboardClient({ data, userName }: DashboardClientProps) {
-    const { stats, recentTasks } = data;
+    const { stats, recentTasks, recentApplications } = data;
 
     const today = new Date().toLocaleDateString("en-IN", {
         weekday: "long", month: "long", day: "numeric",
@@ -244,6 +303,14 @@ export default function DashboardClient({ data, userName }: DashboardClientProps
                     </div>
                     <div className="px-1 sm:px-2 py-2">
                         <RecentTasks tasks={recentTasks} />
+                    </div>
+                </div>
+                <div className="bg-white rounded-xl border border-zinc-100 shadow-sm">
+                    <div className="px-3 sm:px-4 pt-4 pb-3 border-b border-zinc-50">
+                        <SectionHeader title="Recent Applications" href="/dashboard/applied" linkLabel="View all" />
+                    </div>
+                    <div className="px-1 sm:px-2 py-2">
+                        <RecentApplications applications={recentApplications} />
                     </div>
                 </div>
             </div>
