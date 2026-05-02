@@ -252,7 +252,7 @@ function TaskCard({ task, userId, isSaved }: { task: FindTask; userId: string; i
                             <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
                             {task.category}
                         </span>
-                        <h3 className="text-0.7lg font-semibold text-zinc-900 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors">
+                        <h3 className="text-sm sm:text-base font-semibold text-zinc-900 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors">
                             {task.title}
                         </h3>
                     </div>
@@ -268,7 +268,7 @@ function TaskCard({ task, userId, isSaved }: { task: FindTask; userId: string; i
                 </div>
 
                 {/* Description */}
-                <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed -mt-1">
+                <p className="text-xs sm:text-sm text-zinc-400 line-clamp-2 leading-relaxed -mt-1">
                     {task.description}
                 </p>
 
