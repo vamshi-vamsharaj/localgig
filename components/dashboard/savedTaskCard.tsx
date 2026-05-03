@@ -1,4 +1,3 @@
-// components/dashboard/SavedTaskCard.tsx
 "use client";
 
 import Link from "next/link";
@@ -14,8 +13,6 @@ import {
 } from "lucide-react";
 import type { Task } from "@/lib/models/models.types";
 
-// ─── Config ───────────────────────────────────────────────────────────────────
-
 type TaskStatus = "open" | "in_progress" | "completed" | "cancelled";
 
 const STATUS_CONFIG: Record<TaskStatus, { label: string; badge: string; dot: string }> = {
@@ -25,17 +22,15 @@ const STATUS_CONFIG: Record<TaskStatus, { label: string; badge: string; dot: str
     cancelled:   { label: "Cancelled",   badge: "bg-zinc-100 text-zinc-500 ring-1 ring-zinc-200",        dot: "bg-zinc-300" },
 };
 
-const CATEGORY_COLORS: Record<string, string> = {
-    Moving:      "bg-sky-50 text-sky-700",
-    Delivery:    "bg-amber-50 text-amber-700",
-    Repair:      "bg-rose-50 text-rose-700",
-    Tutoring:    "bg-violet-50 text-violet-700",
-    Photography: "bg-pink-50 text-pink-700",
-    Cleaning:    "bg-teal-50 text-teal-700",
-    General:     "bg-zinc-100 text-zinc-600",
+const CATEGORY_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
+    Moving:      { bg: "bg-sky-50",    text: "text-sky-700",    dot: "bg-sky-400" },
+    Delivery:    { bg: "bg-amber-50",  text: "text-amber-700",  dot: "bg-amber-400" },
+    Repair:      { bg: "bg-rose-50",   text: "text-rose-700",   dot: "bg-rose-400" },
+    Tutoring:    { bg: "bg-violet-50", text: "text-violet-700", dot: "bg-violet-400" },
+    Photography: { bg: "bg-pink-50",   text: "text-pink-700",   dot: "bg-pink-400" },
+    Cleaning:    { bg: "bg-teal-50",   text: "text-teal-700",   dot: "bg-teal-400" },
+    General:     { bg: "bg-zinc-100",  text: "text-zinc-600",   dot: "bg-zinc-400" },
 };
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDeadline(iso?: string) {
     if (!iso) return null;
@@ -53,16 +48,12 @@ function timeAgo(iso: string) {
     return `${Math.floor(days / 30)}mo ago`;
 }
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-
 interface SavedTaskCardProps {
     task: Task;
     isSaved: boolean;
     isUnsaving: boolean;
     onUnsave: (taskId: string) => void;
 }
-
-// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function SavedTaskCard({
     task,
@@ -71,7 +62,7 @@ export default function SavedTaskCard({
     onUnsave,
 }: SavedTaskCardProps) {
     const status = STATUS_CONFIG[task.status] ?? STATUS_CONFIG.open;
-    const categoryStyle = CATEGORY_COLORS[task.category ?? "General"] ?? CATEGORY_COLORS.General;
+    const cfg = CATEGORY_COLORS[task.category ?? "General"] ?? CATEGORY_COLORS.General;
     const deadline = typeof task.deadline === "string"
         ? task.deadline
         : task.deadline?.toISOString();
@@ -79,107 +70,114 @@ export default function SavedTaskCard({
     return (
         <div className="group relative bg-white rounded-2xl border border-zinc-100 shadow-sm hover:shadow-lg hover:border-blue-100 hover:-translate-y-0.5 transition-all duration-200 flex flex-col overflow-hidden">
 
-            {/* Top status accent */}
-            <div className={`h-1 w-full ${status.dot}`} />
+            {/* Top status accent — matches FindTasks h-[3px] */}
+            <div className={`h-[3px] w-full shrink-0 ${cfg.dot}`} />
 
-            <div className="p-6 flex flex-col gap-5 flex-1">
+            <div className="p-4 sm:p-5 flex flex-col gap-3 sm:gap-4 flex-1">
 
                 {/* ── Header ─────────────────────────────────────────────── */}
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start justify-between gap-2">
                     <div className="flex-1 min-w-0">
-                        {/* Category pill */}
-                        <span className={`inline-flex items-center text-xs font-semibold uppercase tracking-wide px-2.5 py-0.5 rounded-full mb-2.5 ${categoryStyle}`}>
+                        {/* Category badge — compact, matches FindTasks text-[10px] tracking-wider */}
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full mb-1.5 ${cfg.bg} ${cfg.text}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
                             {task.category ?? "General"}
                         </span>
-                        {/* Title */}
-                        <h3 className="text-base font-bold text-zinc-900 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors">
+                        <h3 className="text-sm sm:text-base font-semibold text-zinc-900 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors">
                             {task.title}
                         </h3>
                     </div>
 
-                    {/* Bookmark / unsave button */}
-                    <button
-                        onClick={() => onUnsave(task._id)}
-                        disabled={isUnsaving}
-                        title={isSaved ? "Remove from saved" : "Save"}
-                        className={`shrink-0 h-9 w-9 rounded-xl flex items-center justify-center border transition-all duration-150 ${
-                            isSaved
-                                ? "bg-blue-600 border-blue-600 text-white hover:bg-red-500 hover:border-red-500 shadow-sm shadow-blue-200"
-                                : "border-zinc-200 text-zinc-400 hover:border-blue-300 hover:text-blue-600"
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                        {isUnsaving
-                            ? <Loader2 className="h-4 w-4 animate-spin" />
-                            : <Bookmark className="h-4 w-4" fill={isSaved ? "currentColor" : "none"} />
-                        }
-                    </button>
+                    {/* Budget — right-aligned like FindTasks TaskCard */}
+                    <div className="shrink-0 text-right">
+                        <div className="flex items-center gap-0.5 font-bold text-zinc-900 justify-end">
+                            <IndianRupee className="h-3.5 w-3.5 text-zinc-400" />
+                            <span className="text-base tabular-nums">{task.budget.toLocaleString("en-IN")}</span>
+                        </div>
+                        <p className="text-[10px] text-zinc-400 mt-0.5">budget</p>
+                    </div>
                 </div>
 
                 {/* ── Description ─────────────────────────────────────────── */}
-                <p className="text-sm text-zinc-500 line-clamp-2 leading-relaxed -mt-1">
+                <p className="text-xs sm:text-sm text-zinc-400 line-clamp-2 leading-relaxed -mt-1">
                     {task.description}
                 </p>
 
-                {/* ── Meta ────────────────────────────────────────────────── */}
-                <div className="flex flex-col gap-2 text-sm text-zinc-500">
-                    <span className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 shrink-0 text-blue-400" />
-                        <span className="truncate">{task.address}</span>
-                    </span>
-                    {task.estimatedHours && (
-                        <span className="flex items-center gap-2">
-                            <Clock className="h-4 w-4 shrink-0 text-blue-400" />
-                            {task.estimatedHours}h estimated
-                        </span>
-                    )}
-                    {deadline && (
-                        <span className="flex items-center gap-2">
-                            <Calendar className="h-4 w-4 shrink-0 text-blue-400" />
-                            Due {formatDeadline(deadline)}
-                        </span>
-                    )}
-                </div>
+            {/* ── Meta ────────────────────────────────────────────────── */}
+<div className="flex flex-col gap-1.5 text-xs sm:text-sm text-zinc-500">
+    <span className="flex items-center gap-1.5">
+        <MapPin className="h-3.5 w-3.5 shrink-0 text-blue-400" />
+        <span className="truncate">{task.address}</span>
+    </span>
 
-                <div className="border-t border-zinc-100" />
+    {task.estimatedHours && (
+        <span className="flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5 shrink-0 text-blue-400" />
+            {task.estimatedHours}h estimated
+        </span>
+    )}
 
-                {/* ── Footer row ──────────────────────────────────────────── */}
-                <div className="flex items-center justify-between gap-2">
-                    {/* Budget */}
-                    <div className="flex items-center gap-0.5 font-extrabold text-zinc-900">
-                        <IndianRupee className="h-4 w-4 text-zinc-400 mt-0.5" />
-                        <span className="text-xl tabular-nums">{task.budget.toLocaleString("en-IN")}</span>
-                    </div>
+    {deadline && (
+        <span className="flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 shrink-0 text-blue-400" />
+            Due {formatDeadline(deadline)}
+        </span>
+    )}
+</div>
 
-                    {/* Status + applicants */}
-                    <div className="flex items-center gap-2">
-                        <span className="flex items-center gap-1.5 text-sm text-zinc-400 font-medium">
-                            <Users className="h-4 w-4 text-blue-400" />
-                            {task.applicantsCount}
-                        </span>
-                        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${status.badge}`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
-                            {status.label}
-                        </span>
-                    </div>
-                </div>
+<div className="border-t border-zinc-100" />
 
-                {/* ── Actions ─────────────────────────────────────────────── */}
-                <div className="flex gap-2">
-                    <Link
-                        href={`/tasks/${task._id}`}
-                        className="flex-1 flex items-center justify-center gap-2 h-10 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition-colors shadow-sm shadow-blue-200"
-                    >
-                        View Task <ArrowUpRight className="h-4 w-4" />
-                    </Link>
-                </div>
+{/* ── Footer row ──────────────────────────────────────────── */}
+<div className="flex items-center justify-between gap-2">
+    <div className="flex items-center gap-1 text-xs sm:text-sm text-zinc-500">
+        <Users className="h-3.5 w-3.5 text-blue-400" />
+        <span>{task.applicantsCount} applied</span>
+    </div>
 
-            </div>
+    <span
+        className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${status.badge}`}
+    >
+        <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
+        {status.label}
+    </span>
+</div>
 
-            {/* Saved timestamp footer */}
-            <div className="px-6 py-2.5 bg-zinc-50 border-t border-zinc-100 text-xs text-zinc-400 font-medium">
-                Saved {timeAgo(task.createdAt as unknown as string)}
-            </div>
+{/* ── Actions ─────────────────────────────────────────────── */}
+<div className="flex gap-2">
+    <Link
+        href={`/tasks/${task._id}`}
+        className="flex-1 flex items-center justify-center gap-1.5 h-9 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-semibold transition-colors shadow-sm shadow-blue-200"
+    >
+        View Task
+        <ArrowUpRight className="h-3.5 w-3.5" />
+    </Link>
 
+    <button
+        onClick={() => onUnsave(task._id)}
+        disabled={isUnsaving}
+        title={isSaved ? "Remove from saved" : "Save"}
+        className={`h-9 w-9 flex items-center justify-center rounded-xl border transition-all duration-150 shrink-0 ${
+            isSaved
+                ? "bg-blue-600 border-blue-600 text-white hover:bg-red-500 hover:border-red-500 shadow-sm shadow-blue-200"
+                : "border-zinc-200 text-zinc-400 hover:border-blue-300 hover:text-blue-600"
+        } disabled:opacity-50 disabled:cursor-not-allowed`}
+    >
+        {isUnsaving ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+            <Bookmark
+                className="h-3.5 w-3.5"
+                fill={isSaved ? "currentColor" : "none"}
+            />
+        )}
+    </button>
+</div>
+
+{/* Saved timestamp footer */}
+<div className="px-4 sm:px-5 py-2 bg-zinc-50 border-t border-zinc-100 text-[11px] text-zinc-400 font-medium shrink-0">
+    Saved {timeAgo(task.createdAt as unknown as string)}
+</div>
+</div>
         </div>
     );
 }
