@@ -273,47 +273,54 @@ function TaskCard({ task, userId, isSaved }: { task: FindTask; userId: string; i
                 </p>
 
                 {/* Meta */}
-                <div className="flex flex-col gap-1.5 text-xs text-zinc-400">
-                    <span className="flex items-center gap-1.5">
-                        <MapPin className="h-3 w-3 shrink-0 text-blue-300" />
-                        <span className="truncate">{task.address}</span>
-                    </span>
-                    {task.estimatedHours && (
-                        <span className="flex items-center gap-1.5">
-                            <Clock className="h-3 w-3 shrink-0 text-blue-300" />
-                            {task.estimatedHours}h estimated
-                        </span>
-                    )}
-                    {task.deadline && (
-                        <span className="flex items-center gap-1.5">
-                            <Calendar className="h-3 w-3 shrink-0 text-blue-300" />
-                            Due {formatDate(task.deadline)}
-                        </span>
-                    )}
-                </div>
+                <div className="flex flex-col gap-1.5 text-sm text-zinc-500">
+    <span className="flex items-center gap-1.5">
+        <MapPin className="h-3.5 w-3.5 shrink-0 text-blue-400" />
+        <span className="truncate">{task.address}</span>
+    </span>
 
-                <div className="border-t border-zinc-50" />
+    {task.estimatedHours && (
+        <span className="flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5 shrink-0 text-blue-400" />
+            {task.estimatedHours}h estimated
+        </span>
+    )}
 
-                {/* Footer row */}
-                <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1 text-xs text-zinc-400">
-                        <Users className="h-3 w-3 text-blue-300" />
-                        <span>{task.applicantsCount} applied</span>
-                    </div>
-                    <span className="text-[10px] text-zinc-400">{timeAgo(task.createdAt)}</span>
-                </div>
+    {task.deadline && (
+        <span className="flex items-center gap-1.5">
+            <Calendar className="h-3.5 w-3.5 shrink-0 text-blue-400" />
+            Due {formatDate(task.deadline)}
+        </span>
+    )}
+</div>
 
-                {/* Actions */}
-                <div className="flex gap-2">
-                    <ApplyButton taskId={task._id} hasApplied={task.hasApplied} />
-                    <BookmarkButton taskId={task._id} userId={userId} isSaved={isSaved} />
-                    <Link
-                        href={`/tasks/${task._id}`}
-                        className="flex items-center justify-center h-9 w-9 rounded-xl border border-zinc-200 text-zinc-400 hover:text-blue-600 hover:border-blue-300 transition-colors"
-                    >
-                        <ArrowUpRight className="h-3.5 w-3.5" />
-                    </Link>
-                </div>
+<div className="border-t border-zinc-50" />
+
+{/* Footer row */}
+<div className="flex items-center justify-between gap-2">
+    <div className="flex items-center gap-1.5 text-sm text-zinc-500">
+        <Users className="h-3.5 w-3.5 text-blue-400" />
+        <span>{task.applicantsCount} applied</span>
+    </div>
+
+    <span className="text-xs text-zinc-400">
+        {timeAgo(task.createdAt)}
+    </span>
+</div>
+
+{/* Actions */}
+<div className="flex gap-2">
+    <ApplyButton taskId={task._id} hasApplied={task.hasApplied} />
+
+    <BookmarkButton taskId={task._id} userId={userId} isSaved={isSaved} />
+
+    <Link
+        href={`/tasks/${task._id}`}
+        className="flex items-center justify-center h-10 w-10 rounded-xl border border-zinc-200 text-zinc-400 hover:text-blue-600 hover:border-blue-300 transition-colors"
+    >
+        <ArrowUpRight className="h-4 w-4" />
+    </Link>
+</div>
 
             </div>
         </div>

@@ -145,92 +145,101 @@ function ApplicationCard({ item }: { item: AppliedTask }) {
     }
 
     return (
-        <div className="group bg-white rounded-2xl border border-zinc-100 shadow-sm hover:shadow-lg hover:border-blue-100 hover:-translate-y-0.5 transition-all duration-200 flex flex-col overflow-hidden">
+    <div className="group bg-white rounded-2xl border border-zinc-100 shadow-sm hover:shadow-lg hover:border-blue-100 hover:-translate-y-0.5 transition-all duration-200 flex flex-col overflow-hidden">
 
-            {/* Status accent bar */}
-            <div className={`h-[3px] w-full ${appS.bar}`} />
+        {/* Status accent bar */}
+        <div className={`h-[4px] w-full ${appS.bar}`} />
 
-            <div className="p-5 flex flex-col gap-4 flex-1">
+        <div className="p-5 flex flex-col gap-4 flex-1">
 
-                {/* Header */}
-                <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                        <span className={`inline-flex items-center text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full mb-2 ${categoryStyle}`}>
-                            {task.category}
-                        </span>
-                        <h3 className="text-sm font-semibold text-zinc-900 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors">
-                            {task.title}
-                        </h3>
-                    </div>
-                    <span className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full ${appS.badge}`}>
-                        <AppIcon className="h-2.5 w-2.5" />
-                        {appS.label}
+            {/* Header */}
+            <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                    <span className={`inline-flex items-center text-xs font-semibold uppercase tracking-wide px-2.5 py-0.5 rounded-full mb-2 ${categoryStyle}`}>
+                        {task.category}
                     </span>
+
+                    <h3 className="text-base font-semibold text-zinc-900 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors">
+                        {task.title}
+                    </h3>
                 </div>
 
-                {/* Description */}
-                <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed -mt-1">
-                    {task.description}
-                </p>
+                <span className={`shrink-0 inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${appS.badge}`}>
+                    <AppIcon className="h-3 w-3" />
+                    {appS.label}
+                </span>
+            </div>
 
-                {/* Meta */}
-                <div className="flex flex-col gap-1.5 text-xs text-zinc-400">
+            {/* Description */}
+            <p className="text-sm text-zinc-500 line-clamp-2 leading-relaxed -mt-1">
+                {task.description}
+            </p>
+
+            {/* Meta */}
+            <div className="flex flex-col gap-1.5 text-sm text-zinc-500">
+                <span className="flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 shrink-0 text-blue-400" />
+                    <span className="truncate">{task.address}</span>
+                </span>
+
+                {task.estimatedHours && (
                     <span className="flex items-center gap-1.5">
-                        <MapPin className="h-3 w-3 shrink-0 text-blue-300" />
-                        <span className="truncate">{task.address}</span>
+                        <Clock className="h-3.5 w-3.5 shrink-0 text-blue-400" />
+                        {task.estimatedHours}h estimated
                     </span>
-                    {task.estimatedHours && (
-                        <span className="flex items-center gap-1.5">
-                            <Clock className="h-3 w-3 shrink-0 text-blue-300" />
-                            {task.estimatedHours}h estimated
+                )}
+
+                {task.deadline && (
+                    <span className="flex items-center gap-1.5">
+                        <Calendar className="h-3.5 w-3.5 shrink-0 text-blue-400" />
+                        Due {formatDate(task.deadline)}
+                    </span>
+                )}
+            </div>
+
+            <div className="border-t border-zinc-50" />
+
+            {/* Budget */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <p className="text-xs text-zinc-400 mb-0.5">Task Budget</p>
+                    <div className="flex items-center gap-0.5 font-bold text-zinc-900">
+                        <IndianRupee className="h-4 w-4 text-zinc-400" />
+                        <span className="text-lg tabular-nums">
+                            {task.budget.toLocaleString("en-IN")}
                         </span>
-                    )}
-                    {task.deadline && (
-                        <span className="flex items-center gap-1.5">
-                            <Calendar className="h-3 w-3 shrink-0 text-blue-300" />
-                            Due {formatDate(task.deadline)}
-                        </span>
-                    )}
+                    </div>
                 </div>
 
-                <div className="border-t border-zinc-50" />
-
-                {/* Budget */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-[10px] text-zinc-400 mb-0.5">Task Budget</p>
-                        <div className="flex items-center gap-0.5 font-bold text-zinc-900">
-                            <IndianRupee className="h-3.5 w-3.5 text-zinc-400" />
-                            <span className="text-base tabular-nums">{task.budget.toLocaleString("en-IN")}</span>
+                {item.proposedBudget && (
+                    <div className="text-right">
+                        <p className="text-xs text-zinc-400 mb-0.5">Your Offer</p>
+                        <div className="flex items-center gap-0.5 font-bold text-blue-600">
+                            <IndianRupee className="h-4 w-4" />
+                            <span className="text-lg tabular-nums">
+                                {item.proposedBudget.toLocaleString("en-IN")}
+                            </span>
                         </div>
                     </div>
-                    {item.proposedBudget && (
-                        <div className="text-right">
-                            <p className="text-[10px] text-zinc-400 mb-0.5">Your Offer</p>
-                            <div className="flex items-center gap-0.5 font-bold text-blue-600">
-                                <IndianRupee className="h-3.5 w-3.5" />
-                                <span className="text-base tabular-nums">{item.proposedBudget.toLocaleString("en-IN")}</span>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* CTA */}
-                <Link
-                    href={`/tasks/${task._id}`}
-                    className="flex items-center justify-center gap-1.5 h-9 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-colors shadow-sm shadow-blue-200"
-                >
-                    View Task <ArrowUpRight className="h-3.5 w-3.5" />
-                </Link>
+                )}
             </div>
 
-            <div className="px-5 py-2.5 bg-zinc-50/80 border-t border-zinc-100 text-[10px] text-zinc-400 font-medium">
-                Applied {timeAgo(item.appliedAt)}
-            </div>
+            {/* CTA */}
+            <Link
+                href={`/tasks/${task._id}`}
+                className="flex items-center justify-center gap-1.5 h-10 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors shadow-sm shadow-blue-200"
+            >
+                View Task
+                <ArrowUpRight className="h-4 w-4" />
+            </Link>
         </div>
-    );
-}
 
+        <div className="px-5 py-2.5 bg-zinc-50/80 border-t border-zinc-100 text-xs text-zinc-400 font-medium">
+            Applied {timeAgo(item.appliedAt)}
+        </div>
+    </div>
+);
+}
 // ─── Application Row (list) ───────────────────────────────────────────────────
 
 function ApplicationRow({ item }: { item: AppliedTask }) {
