@@ -32,6 +32,8 @@ interface NominatimResult {
     lon:          string;
 }
 
+type GeoError = "denied" | "unavailable" | "timeout" | null;
+
 // ─── Sub-component: syncs map center when position changes ────────────────────
 
 function MapController({ position }: { position: [number, number] }) {
@@ -87,6 +89,14 @@ async function searchAddress(query: string): Promise<NominatimResult[]> {
     }
 }
 
+// ─── Geolocation error message map ───────────────────────────────────────────
+
+const GEO_ERROR_MESSAGES: Record<NonNullable<GeoError>, string> = {
+    denied:      "Location access denied. Please allow it in browser settings.",
+    unavailable: "Location unavailable. Try searching manually.",
+    timeout:     "Location request timed out. Try again.",
+};
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 const DEFAULT_CENTER: [number, number] = [17.3850, 78.4867]; // Hyderabad
@@ -110,6 +120,7 @@ export default function LocationPicker({
     const [isSearching, setIsSearching]       = useState(false);
     const [showDropdown, setShowDropdown]     = useState(false);
     const [isLocating, setIsLocating]         = useState(false);
+    const [geoError, setGeoError]             = useState<GeoError>(null);
     const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [iconFixed, setIconFixed]           = useState(false);
 
@@ -122,6 +133,7 @@ export default function LocationPicker({
     // Debounced search
     const handleSearchInput = useCallback((value: string) => {
         setSearchQuery(value);
+        setGeoError(null);
         if (searchTimeout.current) clearTimeout(searchTimeout.current);
         if (!value.trim()) {
             setSearchResults([]);
@@ -157,6 +169,7 @@ export default function LocationPicker({
     async function handleMapClick(lat: number, lng: number) {
         setPosition([lat, lng]);
         setPinPlaced(true);
+        setGeoError(null);
         const address = await reverseGeocode(lat, lng);
         setSearchQuery(address);
         onLocationChange({ address, longitude: lng, latitude: lat });
@@ -165,9 +178,13 @@ export default function LocationPicker({
     // ── Use Current Location ──────────────────────────────────────────────────
 
     function handleUseCurrentLocation() {
-        if (!navigator.geolocation) return;
+        if (!navigator.geolocation) {
+            setGeoError("unavailable");
+            return;
+        }
 
         setIsLocating(true);
+        setGeoError(null);
 
         navigator.geolocation.getCurrentPosition(
             async (pos) => {
@@ -183,8 +200,11 @@ export default function LocationPicker({
 
                 setIsLocating(false);
             },
-            () => {
+            (err) => {
                 setIsLocating(false);
+                if (err.code === err.PERMISSION_DENIED)  setGeoError("denied");
+                else if (err.code === err.TIMEOUT)       setGeoError("timeout");
+                else                                     setGeoError("unavailable");
             },
             { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
         );
@@ -215,7 +235,7 @@ export default function LocationPicker({
                                 <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-400 animate-spin" />
                             ) : searchQuery && (
                                 <button
-                                    onClick={() => { setSearchQuery(""); setSearchResults([]); setShowDropdown(false); }}
+                                    onClick={() => { setSearchQuery(""); setSearchResults([]); setShowDropdown(false); setGeoError(null); }}
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300 hover:text-zinc-500 transition"
                                 >
                                     <X className="h-3.5 w-3.5" />
@@ -240,6 +260,17 @@ export default function LocationPicker({
                             }
                         </button>
                     </div>
+
+                    {/* Geolocation error toast */}
+                    {geoError && (
+                        <div className="absolute top-full left-0 right-0 mt-1 flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-xl shadow-sm z-[1001]">
+                            <MapPin className="h-3.5 w-3.5 text-red-400 shrink-0" />
+                            <p className="text-xs text-red-600 font-medium flex-1">{GEO_ERROR_MESSAGES[geoError]}</p>
+                            <button onClick={() => setGeoError(null)} className="text-red-300 hover:text-red-500 transition">
+                                <X className="h-3 w-3" />
+                            </button>
+                        </div>
+                    )}
 
                     {/* Search dropdown results */}
                     {showDropdown && searchResults.length > 0 && (
