@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
-import { Search, Loader2, X, MapPin } from "lucide-react";
+import { Search, Loader2, X, MapPin, LocateFixed } from "lucide-react";
 import type L from "leaflet";
 
 // ─── Fix Leaflet's default icon broken by Webpack ────────────────────────────
@@ -222,6 +222,23 @@ export default function LocationPicker({
                                 </button>
                             )}
                         </div>
+
+                        {/* Current location button */}
+                        <button
+                            onClick={handleUseCurrentLocation}
+                            disabled={isLocating}
+                            title="Use current location"
+                            className={`h-10 w-10 shrink-0 flex items-center justify-center rounded-xl border transition-all duration-150
+                                ${isLocating
+                                    ? "bg-blue-50 border-blue-200 text-blue-400 cursor-not-allowed"
+                                    : "bg-white/95 backdrop-blur-sm border-zinc-200 text-zinc-500 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 shadow-sm"
+                                }`}
+                        >
+                            {isLocating
+                                ? <Loader2 className="h-4 w-4 animate-spin" />
+                                : <LocateFixed className="h-4 w-4" />
+                            }
+                        </button>
                     </div>
 
                     {/* Search dropdown results */}
