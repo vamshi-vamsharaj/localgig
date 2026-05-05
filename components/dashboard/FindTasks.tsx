@@ -23,6 +23,8 @@ import {
 } from "lucide-react";
 import type { FindTask } from "@/lib/actions/find-tasks";
 import { toggleSaveTask } from "@/lib/actions/savedTasks";
+import { useRouter } from "next/navigation";
+import { useSession } from "@/lib/auth/auth-client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -135,8 +137,17 @@ function ApplyButton({ taskId, hasApplied }: { taskId: string; hasApplied: boole
     const [applied, setApplied] = useState(hasApplied);
     const [isPending, startTransition] = useTransition();
 
+    const router = useRouter();
+    const { data: session } = useSession();
+
     async function handleApply() {
+        if (!session?.user) {
+            router.push("/sign-in");
+            return;
+        }
+
         if (applied || isPending) return;
+
         startTransition(async () => {
             try {
                 const res = await fetch("/api/applications", {
@@ -146,7 +157,7 @@ function ApplyButton({ taskId, hasApplied }: { taskId: string; hasApplied: boole
                 });
                 if (res.ok) setApplied(true);
             } catch {
-                // silently fail — user can retry
+                // silently fail
             }
         });
     }
@@ -188,7 +199,14 @@ function BookmarkButton({
     const [saved, setSaved] = useState(initialSaved);
     const [isPending, startTransition] = useTransition();
 
+    const router = useRouter();
+    const { data: session } = useSession();
+
     function handleToggle() {
+        if (!session?.user) {
+            router.push("/sign-in");
+            return;
+        }
         if (isPending) return;
 
         // Optimistic update — instant
