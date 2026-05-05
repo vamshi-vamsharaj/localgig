@@ -1,64 +1,66 @@
+"use server";
+
+import { redirect } from "next/navigation";
 import connectDB from "@/lib/db";
 import { Task } from "@/lib/models";
-import { Task as TaskType } from "@/lib/models/models.types";
-interface CreateTaskInput {
-  title: string;
-  description: string;
-  budget: number;
-  category?: string;
-  estimatedHours?: number;
-  location: { type: "Point"; coordinates: [number, number] };
-  address: string;
-  deadline?: Date | string;
-  clientId: string;
-}
+import { getSession } from "@/lib/auth/auth";
+import type { ActionResult } from "@/lib/types";
+import { CreateTaskSchema, type CreateTaskInput } from "@/lib/schemas/tasks";
 
-export async function createTask(data: CreateTaskInput) {
-  await connectDB();
+// ─── Server Action ────────────────────────────────────────────────────────────
 
-  const task = await Task.create({
-    ...data,
-    status: "open",
-    applicantsCount: 0,
-  });
+export async function createTask(
+    data: CreateTaskInput
+): Promise<ActionResult<{ taskId: string }>> {
+    try {
+        // 1. Auth
+        const session = await getSession();
+        if (!session?.user) {
+            return { success: false, error: "You must be signed in to post a task" };
+        }
+        const clientId = (session.user as { id: string }).id;
 
-  return task;
+        // 2. Validate
+        const parsed = CreateTaskSchema.safeParse(data);
+        if (!parsed.success) {
+            const firstError = parsed.error.issues[0]?.message ?? "Invalid input";
+            return { success: false, error: firstError };
+        }
+
+        const {
+            title, description, budget, category,
+            estimatedHours, deadline, address, longitude, latitude,
+        } = parsed.data;
+
+        // 3. Persist
+        await connectDB();
+
+        const task = await Task.create({
+            title:          title.trim(),
+            description:    description.trim(),
+            budget,
+            category,
+            estimatedHours: estimatedHours ?? undefined,
+            deadline:       deadline ? new Date(deadline) : undefined,
+            address:        address.trim(),
+            location: {
+                type:        "Point",
+                coordinates: [longitude, latitude], // GeoJSON: [lng, lat]
+            },
+            clientId,
+            status:          "open",
+            applicantsCount: 0,
+        });
+
+        return { success: true, data: { taskId: task._id.toString() } };
+    } catch (err) {
+        console.error("[createTask]", err);
+        return { success: false, error: "Failed to create task. Please try again." };
+    }
 }
 
 interface GetTasksParams {
   category?: string;
   location?: string;
   budget?: number;
-}
-
-export async function getTasks({
-  category,
-  location,
-  budget,
-}: GetTasksParams): Promise<TaskType[]> {
-
-  await connectDB();
-
-  const query: any = {
-    status: "open",
-  };
-
-  if (category && category !== "all") {
-    query.category = category;
-  }
-
-  if (location && location !== "all") {
-    query.address = { $regex: location, $options: "i" };
-  }
-
-  if (budget !== undefined && budget > 0) {
-    query.budget = { $gte: budget };
-  }
-
-
-  const tasks = await Task.find(query)
-    .sort({ createdAt: -1 })
-    .lean();
-
-  return JSON.parse(JSON.stringify(tasks));
 }
