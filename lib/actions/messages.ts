@@ -134,41 +134,81 @@ export async function markMessagesRead(
 }
 
 // ─── Get all conversations for a user (inbox) ─────────────────────────────────
+type ConversationSummary = {
+  _id: string;
+  taskId: string;
+  taskTitle: string;
+  taskStatus: string;
+  client: { _id: string; name: string; avatar: string };
+  worker: { _id: string; name: string; avatar: string };
+  lastMessage: string;
+  lastMessageAt: string;
+  unreadCount: number;
+  updatedAt: string;
+  role: "client" | "worker";
+};
 
-export async function getConversations(userId: string) {
-    await connectDB();
+type PopulatedUser = {
+  _id: mongoose.Types.ObjectId;
+  name: string;
+  avatar: string;
+};
 
-    const oid = new mongoose.Types.ObjectId(userId);
+type PopulatedTask = {
+  _id: mongoose.Types.ObjectId;
+  title: string;
+  status: string;
+};
 
-    const conversations = await Conversation.find({
-        $or: [{ clientId: oid }, { workerId: oid }],
-    })
-        .populate("taskId", "title status")
-        .populate("clientId", "name avatar")
-        .populate("workerId", "name avatar")
-        .sort({ updatedAt: -1 })
-        .lean();
+function isPopulatedUser(value: unknown): value is PopulatedUser {
+  return (
+    typeof value === "object" && value !== null &&
+    "_id" in value && "name" in value && "avatar" in value
+  );
+}
 
-    return conversations.map((c: any) => ({
-        _id:           c._id.toString(),
-        taskId:        c.taskId?._id?.toString(),
-        taskTitle:     c.taskId?.title,
-        taskStatus:    c.taskId?.status,
-        client: {
-            _id:    c.clientId?._id?.toString(),
-            name:   c.clientId?.name,
-            avatar: c.clientId?.avatar,
-        },
-        worker: {
-            _id:    c.workerId?._id?.toString(),
-            name:   c.workerId?.name,
-            avatar: c.workerId?.avatar,
-        },
-        lastMessage:   c.lastMessage,
-        lastMessageAt: c.lastMessageAt?.toISOString(),
-        unreadCount:   c.unreadCount,
-        updatedAt:     (c.updatedAt as Date).toISOString(),
-        // Flag which side the current user is on
-        role: c.clientId?._id?.toString() === userId ? "client" : "worker",
+function isPopulatedTask(value: unknown): value is PopulatedTask {
+  return (
+    typeof value === "object" && value !== null &&
+    "_id" in value && "title" in value && "status" in value
+  );
+}
+
+export async function getConversations(userId: string): Promise<ConversationSummary[]> {
+  await connectDB();
+
+  const conversations = await Conversation.find({
+    $or: [{ clientId: userId }, { workerId: userId }],
+  })
+    .populate("taskId", "title status")
+    .populate("clientId", "name avatar")
+    .populate("workerId", "name avatar")
+    .sort({ lastMessageAt: -1 })
+    .lean();
+
+  return conversations
+    .filter((conv: any): conv is { _id: mongoose.Types.ObjectId; taskId: PopulatedTask; clientId: PopulatedUser; workerId: PopulatedUser; lastMessage?: string; lastMessageAt?: Date; unreadCount?: number; updatedAt: Date } =>
+      isPopulatedTask(conv.taskId) && isPopulatedUser(conv.clientId) && isPopulatedUser(conv.workerId)
+    )
+    .map((conv) => ({
+      _id: conv._id.toString(),
+      taskId: conv.taskId._id.toString(),
+      taskTitle: conv.taskId.title,
+      taskStatus: conv.taskId.status,
+      client: {
+        _id: conv.clientId._id.toString(),
+        name: conv.clientId.name,
+        avatar: conv.clientId.avatar,
+      },
+      worker: {
+        _id: conv.workerId._id.toString(),
+        name: conv.workerId.name,
+        avatar: conv.workerId.avatar,
+      },
+      lastMessage: conv.lastMessage || "",
+      lastMessageAt: (conv.lastMessageAt ?? conv.updatedAt).toISOString(),
+      unreadCount: conv.unreadCount || 0,
+      updatedAt: conv.updatedAt.toISOString(),
+      role: conv.clientId._id.toString() === userId ? "client" : "worker",
     }));
 }
