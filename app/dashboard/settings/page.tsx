@@ -1,7 +1,3 @@
-// app/dashboard/settings/page.tsx
-// FIX: better-auth returns session.user.id (not _id). The previous code used
-// sessionUser.id ?? sessionUser._id which worked but was fragile. We cast
-// cleanly and handle the missing-userId case explicitly.
 
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/auth";
