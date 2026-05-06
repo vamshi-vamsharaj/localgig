@@ -1,8 +1,3 @@
-// lib/models/user.ts
-// ROOT CAUSE FIX: avatar, bio, phone, and settings were never defined in the
-// schema. Mongoose silently ignores fields that aren't in the schema on write,
-// and returns undefined on read. That's why updateProfile never persisted and
-// getUserProfile always returned undefined for those fields.
 
 import mongoose, { Schema, Document } from "mongoose";
 
@@ -39,6 +34,7 @@ export interface IUser extends Document {
     phone?: string;
     // ✅ FIXED: settings was missing — causing all settings reads to return {}
     settings: IUserSettings;
+    authId: string;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -83,6 +79,11 @@ const UserSchema = new Schema<IUser>(
             type:    UserSettingsSchema,
             default: () => ({}),
         },
+        authId: {
+    type: String,
+    required: true,
+    unique: true,
+},
     },
     { timestamps: true }
 );

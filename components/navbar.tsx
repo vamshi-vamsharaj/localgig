@@ -1,8 +1,3 @@
-// components/navbar.tsx
-// Premium SaaS navbar — Linear/Vercel/Notion aesthetic
-// Unchanged: all auth logic, useSession, SignOutButton, existing routes
-// Added: mobile drawer, active link highlighting, polished dropdown, refined visual design
-
 "use client";
 
 import { useState, useEffect } from "react";

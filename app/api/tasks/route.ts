@@ -26,17 +26,17 @@ export async function POST(req: NextRequest) {
             deadline,
         } = body;
 
-        const task = await createTask({
-            title,
-            description,
-            budget,
-            category,
-            estimatedHours,
-            location,
-            address,
-            deadline,
-            clientId: session.user.id,
-        });
+       const task = await createTask({
+    title,
+    description,
+    budget,
+    category,
+    estimatedHours,
+    longitude: location.longitude,
+    latitude: location.latitude,
+    address,
+    deadline,
+});
 
         return NextResponse.json(task, { status: 201 });
 

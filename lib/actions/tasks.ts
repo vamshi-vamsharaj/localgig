@@ -64,3 +64,29 @@ interface GetTasksParams {
   location?: string;
   budget?: number;
 }
+
+export async function getTasks(params: GetTasksParams = {}) {
+    try {
+        await connectDB();
+
+        const query: any = {};
+
+        if (params.category) {
+            query.category = params.category;
+        }
+
+        if (params.budget) {
+            query.budget = { $lte: params.budget };
+        }
+
+        const tasks = await Task.find(query)
+            .populate("clientId")
+            .sort({ createdAt: -1 });
+
+        return tasks;
+
+    } catch (error) {
+        console.error("[getTasks]", error);
+        throw new Error("Failed to fetch tasks");
+    }
+}
