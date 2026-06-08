@@ -1,3 +1,4 @@
+// lib/actions/find-tasks.ts
 import connectDB from "@/lib/db";
 import { Task, Application } from "@/lib/models";
 
@@ -18,6 +19,8 @@ export interface FindTask {
     clientId: string;
     hasApplied: boolean;
 }
+
+// ─── /tasks page ─────────────────────────────────────────────────────────────
 
 export async function getAllOpenTasks(userId: string): Promise<FindTask[]> {
     await connectDB();
@@ -61,4 +64,49 @@ export async function getFindTaskStats() {
         ]);
 
     return { total, moving, delivery, repair, tutoring, photography, cleaning };
+}
+
+// ─── Homepage preview ─────────────────────────────────────────────────────────
+// Fetches the N most recent open tasks.
+// Pass userId (from session) so hasApplied is accurate — used by TasksSection
+// to filter out already-applied tasks before rendering. Guests pass "".
+
+export async function getLatestTasksForHomepage(
+    limit: number = 12,
+    userId: string = "",
+): Promise<FindTask[]> {
+    try {
+        await connectDB();
+
+        // Fetch extra docs + the user's existing applications in parallel.
+        const [docs, myApplications] = await Promise.all([
+            Task.find({ status: "open" }).sort({ createdAt: -1 }).limit(limit).lean(),
+            userId
+                ? Application.find({ workerId: userId }).distinct("taskId")
+                : Promise.resolve([]),
+        ]);
+
+        const appliedSet = new Set(
+            (myApplications as any[]).map((id) => id.toString()),
+        );
+
+        return docs.map((doc: any) => ({
+            _id:             String(doc._id),
+            title:           doc.title,
+            description:     doc.description ?? "",
+            category:        doc.category ?? "General",
+            budget:          doc.budget,
+            address:         doc.address ?? "",
+            estimatedHours:  doc.estimatedHours ?? undefined,
+            deadline:        doc.deadline ? new Date(doc.deadline).toISOString() : undefined,
+            applicantsCount: doc.applicantsCount ?? 0,
+            createdAt:       new Date(doc.createdAt as Date).toISOString(),
+            status:          doc.status,
+            clientId:        String(doc.clientId ?? ""),
+            hasApplied:      appliedSet.has(String(doc._id)),
+        }));
+    } catch (err) {
+        console.error("[getLatestTasksForHomepage]", err);
+        return [];
+    }
 }

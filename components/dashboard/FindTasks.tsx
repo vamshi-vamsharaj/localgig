@@ -1,20 +1,20 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+// components/dashboard/FindTasks.tsx
+// Refactored: ApplyButton, BookmarkButton, TaskCard, CATEGORY_CONFIG, helpers
+// are all imported from components/tasks/ — no local duplicates.
+
+import { useState, useMemo, JSXElementConstructor, optimisticKey, ReactElement, ReactNode, ReactPortal } from "react";
 import Link from "next/link";
 import {
     Search,
     MapPin,
-    Clock,
     IndianRupee,
-    Calendar,
     ChevronDown,
     LayoutGrid,
     List,
     ArrowUpRight,
     Briefcase,
-    CheckCircle2,
-    Loader2,
     Users,
     SlidersHorizontal,
     X,
@@ -22,9 +22,16 @@ import {
     Bookmark,
 } from "lucide-react";
 import type { FindTask } from "@/lib/actions/find-tasks";
-import { toggleSaveTask } from "@/lib/actions/savedTasks";
-import { useRouter } from "next/navigation";
-import { useSession } from "@/lib/auth/auth-client";
+import TaskCard from "@/components/dashboard/tasks/TaskCard";
+import BookmarkButton from "@/components/dashboard/tasks/BookmarkButton";
+import ApplyButton from "@/components/dashboard/tasks/ApplyButton";
+import {
+    CATEGORY_CONFIG,
+    CATEGORIES,
+    BUDGET_RANGES,
+    timeAgo,
+    type Category,
+} from "@/components/dashboard/tasks/task-utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,62 +47,6 @@ interface Stats {
 
 type ViewMode = "grid" | "list";
 type SortKey = "newest" | "oldest" | "budget_high" | "budget_low" | "applicants";
-
-// ─── Config ───────────────────────────────────────────────────────────────────
-
-const CATEGORIES = [
-    "All",
-    "Moving",
-    "Delivery",
-    "Repair",
-    "Tutoring",
-    "Photography",
-    "Cleaning",
-] as const;
-
-type Category = (typeof CATEGORIES)[number];
-
-const CATEGORY_CONFIG: Record<
-    string,
-    { bg: string; text: string; dot: string; iconBg: string }
-> = {
-    Moving: { bg: "bg-sky-50", text: "text-sky-700", dot: "bg-sky-400", iconBg: "bg-sky-100" },
-    Delivery: { bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-400", iconBg: "bg-amber-100" },
-    Repair: { bg: "bg-rose-50", text: "text-rose-700", dot: "bg-rose-400", iconBg: "bg-rose-100" },
-    Tutoring: { bg: "bg-violet-50", text: "text-violet-700", dot: "bg-violet-400", iconBg: "bg-violet-100" },
-    Photography: { bg: "bg-pink-50", text: "text-pink-700", dot: "bg-pink-400", iconBg: "bg-pink-100" },
-    Cleaning: { bg: "bg-teal-50", text: "text-teal-700", dot: "bg-teal-400", iconBg: "bg-teal-100" },
-    General: { bg: "bg-zinc-100", text: "text-zinc-600", dot: "bg-zinc-400", iconBg: "bg-zinc-100" },
-};
-
-const BUDGET_RANGES = [
-    { label: "Any Budget", min: 0, max: Infinity },
-    { label: "Under ₹500", min: 0, max: 499 },
-    { label: "₹500 – ₹1,000", min: 500, max: 1000 },
-    { label: "₹1,000 – ₹2,000", min: 1000, max: 2000 },
-    { label: "₹2,000 – ₹5,000", min: 2000, max: 5000 },
-    { label: "Above ₹5,000", min: 5000, max: Infinity },
-];
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function timeAgo(iso: string) {
-    const diff = Date.now() - new Date(iso).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 60) return mins <= 1 ? "Just now" : `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    const days = Math.floor(hrs / 24);
-    if (days < 30) return `${days}d ago`;
-    return `${Math.floor(days / 30)}mo ago`;
-}
-
-function formatDate(iso?: string) {
-    if (!iso) return null;
-    return new Date(iso).toLocaleDateString("en-IN", {
-        day: "numeric", month: "short", year: "numeric",
-    });
-}
 
 // ─── Category Stat Pill ───────────────────────────────────────────────────────
 
@@ -114,238 +65,27 @@ function CategoryPill({
     return (
         <button
             onClick={onClick}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-150 whitespace-nowrap ${active
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all duration-150 whitespace-nowrap ${
+                active
                     ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-600/20"
                     : "bg-white border-zinc-200 text-zinc-600 hover:border-blue-300 hover:text-blue-600"
-                }`}
+            }`}
         >
             {cfg && (
                 <span className={`h-2 w-2 rounded-full ${active ? "bg-white/70" : cfg.dot}`} />
             )}
             {label}
-            <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${active ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-500"
-                }`}>
+            <span className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${
+                active ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-500"
+            }`}>
                 {count}
             </span>
         </button>
     );
 }
 
-// ─── Apply Button ─────────────────────────────────────────────────────────────
-
-function ApplyButton({ taskId, hasApplied }: { taskId: string; hasApplied: boolean }) {
-    const [applied, setApplied] = useState(hasApplied);
-    const [isPending, startTransition] = useTransition();
-
-    const router = useRouter();
-    const { data: session } = useSession();
-
-    async function handleApply() {
-        if (!session?.user) {
-            router.push("/sign-in");
-            return;
-        }
-
-        if (applied || isPending) return;
-
-        startTransition(async () => {
-            try {
-                const res = await fetch("/api/applications", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ taskId }),
-                });
-                if (res.ok) setApplied(true);
-            } catch {
-                // silently fail
-            }
-        });
-    }
-
-    if (applied) {
-        return (
-            <span className="flex items-center gap-1.5 h-9 px-4 rounded-xl bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 text-xs font-semibold">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Applied
-            </span>
-        );
-    }
-
-    return (
-        <button
-            onClick={handleApply}
-            disabled={isPending}
-            className="flex items-center justify-center gap-1.5 h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold transition-colors shadow-sm shadow-blue-200 disabled:opacity-70 disabled:cursor-not-allowed"
-        >
-            {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Apply Now"}
-        </button>
-    );
-}
-
-// ─── Bookmark Button ──────────────────────────────────────────────────────────
-// Self-contained: owns its own optimistic state, calls toggleSaveTask directly.
-
-function BookmarkButton({
-    taskId,
-    userId,
-    isSaved: initialSaved,
-    size = "md",
-}: {
-    taskId: string;
-    userId: string;
-    isSaved: boolean;
-    size?: "sm" | "md";
-}) {
-    const [saved, setSaved] = useState(initialSaved);
-    const [isPending, startTransition] = useTransition();
-
-    const router = useRouter();
-    const { data: session } = useSession();
-
-    function handleToggle() {
-        if (!session?.user) {
-            router.push("/sign-in");
-            return;
-        }
-        if (isPending) return;
-
-        // Optimistic update — instant
-        setSaved((prev) => !prev);
-
-        startTransition(async () => {
-            const result = await toggleSaveTask(userId, taskId);
-            if (!result.success) {
-                // Rollback if server call fails
-                setSaved((prev) => !prev);
-            }
-        });
-    }
-
-    const sizeClasses = size === "sm"
-        ? "h-9 w-9"
-        : "h-10 w-10";
-
-    return (
-        <button
-            onClick={handleToggle}
-            disabled={isPending}
-            title={saved ? "Remove from saved" : "Save task"}
-            aria-label={saved ? "Remove from saved" : "Save task"}
-            className={`
-                ${sizeClasses} shrink-0 flex items-center justify-center rounded-xl border
-                transition-all duration-200
-                ${saved
-                    ? "bg-blue-600 border-blue-600 text-white hover:bg-red-500 hover:border-red-500 shadow-sm shadow-blue-200"
-                    : "border-zinc-200 text-zinc-400 hover:border-blue-300 hover:text-blue-600 bg-white"
-                }
-                disabled:opacity-60 disabled:cursor-not-allowed
-            `}
-        >
-            {isPending
-                ? <Loader2 className="h-4 w-4 animate-spin" />
-                : <Bookmark className="h-4 w-4" fill={saved ? "currentColor" : "none"} strokeWidth={2} />
-            }
-        </button>
-    );
-}
-
-
-// ─── Task Card (grid) ─────────────────────────────────────────────────────────
-
-function TaskCard({ task, userId, isSaved }: { task: FindTask; userId: string; isSaved: boolean }) {
-    const cfg = CATEGORY_CONFIG[task.category] ?? CATEGORY_CONFIG.General;
-
-    return (
-        <div className="group bg-white rounded-2xl border border-zinc-100 shadow-sm hover:shadow-lg hover:border-blue-100 hover:-translate-y-0.5 transition-all duration-200 flex flex-col overflow-hidden">
-
-            {/* Top accent */}
-            <div className={`h-[3px] w-full ${cfg.dot}`} />
-
-            <div className="p-5 flex flex-col gap-4 flex-1">
-
-                {/* Header */}
-                <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full mb-2 ${cfg.bg} ${cfg.text}`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
-                            {task.category}
-                        </span>
-                        <h3 className="text-sm sm:text-base font-semibold text-zinc-900 leading-snug line-clamp-2 group-hover:text-blue-600 transition-colors">
-                            {task.title}
-                        </h3>
-                    </div>
-
-                    {/* Budget */}
-                    <div className="shrink-0 text-right">
-                        <div className="flex items-center gap-0.5 font-bold text-zinc-900 justify-end">
-                            <IndianRupee className="h-3.5 w-3.5 text-zinc-400" />
-                            <span className="text-lg tabular-nums">{task.budget.toLocaleString("en-IN")}</span>
-                        </div>
-                        <p className="text-[10px] text-zinc-400 mt-0.5">budget</p>
-                    </div>
-                </div>
-
-                {/* Description */}
-                <p className="text-xs sm:text-sm text-zinc-400 line-clamp-2 leading-relaxed -mt-1">
-                    {task.description}
-                </p>
-
-                {/* Meta */}
-                <div className="flex flex-col gap-1.5 text-sm text-zinc-500">
-    <span className="flex items-center gap-1.5">
-        <MapPin className="h-3.5 w-3.5 shrink-0 text-blue-400" />
-        <span className="truncate">{task.address}</span>
-    </span>
-
-    {task.estimatedHours && (
-        <span className="flex items-center gap-1.5">
-            <Clock className="h-3.5 w-3.5 shrink-0 text-blue-400" />
-            {task.estimatedHours}h estimated
-        </span>
-    )}
-
-    {task.deadline && (
-        <span className="flex items-center gap-1.5">
-            <Calendar className="h-3.5 w-3.5 shrink-0 text-blue-400" />
-            Due {formatDate(task.deadline)}
-        </span>
-    )}
-</div>
-
-<div className="border-t border-zinc-50" />
-
-{/* Footer row */}
-<div className="flex items-center justify-between gap-2">
-    <div className="flex items-center gap-1.5 text-sm text-zinc-500">
-        <Users className="h-3.5 w-3.5 text-blue-400" />
-        <span>{task.applicantsCount} applied</span>
-    </div>
-
-    <span className="text-xs text-zinc-400">
-        {timeAgo(task.createdAt)}
-    </span>
-</div>
-
-{/* Actions */}
-<div className="flex gap-2">
-    <ApplyButton taskId={task._id} hasApplied={task.hasApplied} />
-
-    <BookmarkButton taskId={task._id} userId={userId} isSaved={isSaved} />
-
-    <Link
-        href={`/tasks/${task._id}`}
-        className="flex items-center justify-center h-10 w-10 rounded-xl border border-zinc-200 text-zinc-400 hover:text-blue-600 hover:border-blue-300 transition-colors"
-    >
-        <ArrowUpRight className="h-4 w-4" />
-    </Link>
-</div>
-
-            </div>
-        </div>
-    );
-}
-
-// ─── Task Row (list) ──────────────────────────────────────────────────────────
+// ─── Task Row (list view) ─────────────────────────────────────────────────────
+// Stays local to FindTasks — the list view is only used on the /tasks page.
 
 function TaskRow({ task, userId, isSaved }: { task: FindTask; userId: string; isSaved: boolean }) {
     const cfg = CATEGORY_CONFIG[task.category] ?? CATEGORY_CONFIG.General;
@@ -402,9 +142,7 @@ function TaskRow({ task, userId, isSaved }: { task: FindTask; userId: string; is
     );
 }
 
-
 // ─── Main ─────────────────────────────────────────────────────────────────────
-
 
 interface FindTasksProps {
     tasks: FindTask[];
@@ -416,7 +154,7 @@ interface FindTasksProps {
 export default function FindTasks({ tasks, stats, initialSavedIds, userId }: FindTasksProps) {
     const [search, setSearch] = useState("");
     const [category, setCategory] = useState<Category>("All");
-    const [budgetRange, setBudgetRange] = useState(0); // index into BUDGET_RANGES
+    const [budgetRange, setBudgetRange] = useState(0);
     const [sort, setSort] = useState<SortKey>("newest");
     const [view, setView] = useState<ViewMode>("grid");
     const [showFilters, setShowFilters] = useState(false);
@@ -479,13 +217,6 @@ export default function FindTasks({ tasks, stats, initialSavedIds, userId }: Fin
                         Browse all available gigs near you on LocalGig
                     </p>
                 </div>
-                {/* <Link
-                    href="/tasks/new"
-                    className="inline-flex items-center gap-2 h-9 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition-colors shadow-sm shadow-blue-200"
-                >
-                    <Briefcase className="h-4 w-4" />
-                    Post a Task
-                </Link> */}
                 <div className="flex items-center gap-2">
                     {savedIds.size > 0 && (
                         <Link
@@ -545,10 +276,11 @@ export default function FindTasks({ tasks, stats, initialSavedIds, userId }: Fin
                 {/* Filter toggle */}
                 <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className={`h-9 px-3.5 flex items-center gap-1.5 rounded-xl border text-xs font-medium transition-all ${showFilters || budgetRange !== 0
+                    className={`h-9 px-3.5 flex items-center gap-1.5 rounded-xl border text-xs font-medium transition-all ${
+                        showFilters || budgetRange !== 0
                             ? "border-blue-300 bg-blue-50 text-blue-600"
                             : "border-zinc-200 text-zinc-500 hover:border-blue-300 hover:text-blue-600 bg-white"
-                        }`}
+                    }`}
                 >
                     <SlidersHorizontal className="h-3.5 w-3.5" />
                     Filters
@@ -579,10 +311,11 @@ export default function FindTasks({ tasks, stats, initialSavedIds, userId }: Fin
                         <button
                             key={mode}
                             onClick={() => setView(mode)}
-                            className={`h-7 w-7 flex items-center justify-center rounded-lg transition-all ${view === mode
+                            className={`h-7 w-7 flex items-center justify-center rounded-lg transition-all ${
+                                view === mode
                                     ? "bg-blue-600 text-white shadow-sm"
                                     : "text-zinc-400 hover:text-zinc-600 hover:bg-white/60"
-                                }`}
+                            }`}
                         >
                             <Icon className="h-3.5 w-3.5" />
                         </button>
@@ -609,10 +342,11 @@ export default function FindTasks({ tasks, stats, initialSavedIds, userId }: Fin
                             <button
                                 key={i}
                                 onClick={() => setBudgetRange(i)}
-                                className={`px-3.5 py-1.5 rounded-xl border text-xs font-medium transition-all ${budgetRange === i
+                                className={`px-3.5 py-1.5 rounded-xl border text-xs font-medium transition-all ${
+                                    budgetRange === i
                                         ? "bg-blue-600 border-blue-600 text-white shadow-sm shadow-blue-200"
                                         : "border-zinc-200 text-zinc-600 hover:border-blue-300 hover:text-blue-600 bg-white"
-                                    }`}
+                                }`}
                             >
                                 {range.label}
                             </button>
@@ -696,14 +430,6 @@ export default function FindTasks({ tasks, stats, initialSavedIds, userId }: Fin
             {/* ── List ─────────────────────────────────────────────────────── */}
             {filtered.length > 0 && view === "list" && (
                 <div className="flex flex-col gap-2">
-                    <div className="hidden md:flex items-center gap-4 px-5 py-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-400">
-                        <span className="w-2.5" />
-                        <span className="flex-1">Task</span>
-                        <span className="w-28 hidden sm:block">Budget</span>
-                        <span className="w-24 hidden md:block">Applicants</span>
-                        <span className="w-20 hidden lg:block text-right">Posted</span>
-                        <span className="w-32">Actions</span>
-                    </div>
                     {filtered.map((task) => (
                         <TaskRow
                             key={task._id}
