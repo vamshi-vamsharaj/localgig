@@ -1,5 +1,4 @@
-// app/page.tsx
-import HeroNavbar from "@/components/hero/HeroNavbar";
+
 import HeroSection from "@/components/hero/HeroSection";
 import TasksSection from "@/components/sections/TasksSection";
 import DashboardPreviewSection from "@/components/sections/DashboardPreviewSection";
