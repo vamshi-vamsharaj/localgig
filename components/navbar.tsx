@@ -173,7 +173,7 @@ export default function Navbar() {
 
     return (
         <header className="sticky top-0 z-50 w-full bg-white/90 backdrop-blur-md border-b border-zinc-100 shadow-[0_1px_0_0_rgba(0,0,0,0.04)]">
-            <div className="max-w-[1450px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+            <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
 
                 {/* ── Logo ─────────────────────────────────────────────────── */}
                 <Link

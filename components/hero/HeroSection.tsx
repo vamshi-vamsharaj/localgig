@@ -1,4 +1,3 @@
-// components/hero/HeroSection.tsx
 "use client";
 
 import Link from "next/link";
@@ -39,7 +38,7 @@ export default function HeroSection() {
       <HeroBackground />
 
       <div className="relative z-10 flex-1 flex items-center">
-        <div className="max-w-[1450px] mx-auto px-4 sm:px-6 w-full pt-28 pb-20 sm:pt-32 sm:pb-24">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 w-full pt-20 pb-20 sm:pt-24 sm:pb-24">
 
           {/* ── Two-column asymmetric grid ─────────────────────────────────── */}
           <div className="grid lg:grid-cols-[1fr_460px] xl:grid-cols-[1fr_500px] gap-10 xl:gap-16 items-center">
