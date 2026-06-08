@@ -1,9 +1,23 @@
-import  HeroSection  from "@/components/hero/HeroSection";
+// app/page.tsx
+import HeroNavbar from "@/components/hero/HeroNavbar";
+import HeroSection from "@/components/hero/HeroSection";
+import TasksSection from "@/components/sections/TasksSection";
+import DashboardPreviewSection from "@/components/sections/DashboardPreviewSection";
+import FeaturesSection from "@/components/sections/FeaturesSection";
+import CTASection from "@/components/sections/CTASection";
+import Footer from "@/components/sections/Footer";
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <main className="min-h-screen bg-background overflow-hidden">
-      <HeroSection />
-    </main>
+    <>
+      <main>
+        <HeroSection />
+        <TasksSection />
+        <DashboardPreviewSection />
+        <FeaturesSection />
+        <CTASection />
+      </main>
+      <Footer />
+    </>
   );
 }
